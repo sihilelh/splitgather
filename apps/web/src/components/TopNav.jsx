@@ -1,14 +1,15 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
 const TABS = [
-  { id:'home',     label:'Home',     Icon:HomeIcon },
-  { id:'groups',   label:'Groups',   Icon:GroupsIcon },
-  { id:'friends',  label:'Friends',  Icon:FriendsIcon },
-  { id:'activity', label:'Activity', Icon:ActivityIcon },
-  { id:'account',  label:'Account',  Icon:AccountIcon },
+  { path:'/',         label:'Home',     Icon:HomeIcon },
+  { path:'/groups',   label:'Groups',   Icon:GroupsIcon },
+  { path:'/friends',  label:'Friends',  Icon:FriendsIcon },
+  { path:'/activity', label:'Activity', Icon:ActivityIcon },
+  { path:'/account',  label:'Account',  Icon:AccountIcon },
 ]
 
-export default function TopNav({ active, onChange }) {
+export default function TopNav({ currentPath }) {
   return (
     <nav style={{
       position:'fixed', top:0, left:0, right:0,
@@ -43,35 +44,37 @@ export default function TopNav({ active, onChange }) {
         gap:8,
         alignItems:'center',
       }}>
-        {TABS.map(({id,label,Icon})=>{
-          const isActive = active===id
+        {TABS.map(({path,label,Icon})=>{
+          const isActive = currentPath === path
           return (
-            <button key={id} onClick={()=>onChange(id)} style={{
-              display:'flex',
-              alignItems:'center',
-              gap:6,
-              padding:'8px 14px',
-              background: isActive
-                ? 'linear-gradient(135deg,rgba(31,216,136,0.20),rgba(31,216,136,0.10))'
-                : 'transparent',
-              border: isActive?'1.5px solid rgba(31,216,136,0.30)':'1.5px solid transparent',
-              borderRadius:'var(--r-md)',
-              color: isActive?'var(--accent)':'var(--text2)',
-              fontSize:13,
-              fontWeight: isActive?700:600,
-              cursor:'pointer',
-              transition:'all .2s',
-              fontFamily:'var(--font-body)',
-              letterSpacing:'-0.01em',
-              boxShadow: isActive?'0 2px 8px rgba(31,216,136,0.15)':'none',
-            }}
-            onMouseDown={e=>e.currentTarget.style.transform='scale(0.95)'}
-            onMouseUp={e=>e.currentTarget.style.transform='scale(1)'}
-            onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
-            >
-              <Icon size={16} active={isActive}/>
-              <span>{label}</span>
-            </button>
+            <Link key={path} to={path} style={{textDecoration:'none'}}>
+              <button style={{
+                display:'flex',
+                alignItems:'center',
+                gap:6,
+                padding:'8px 14px',
+                background: isActive
+                  ? 'linear-gradient(135deg,rgba(31,216,136,0.20),rgba(31,216,136,0.10))'
+                  : 'transparent',
+                border: isActive?'1.5px solid rgba(31,216,136,0.30)':'1.5px solid transparent',
+                borderRadius:'var(--r-md)',
+                color: isActive?'var(--accent)':'var(--text2)',
+                fontSize:13,
+                fontWeight: isActive?700:600,
+                cursor:'pointer',
+                transition:'all .2s',
+                fontFamily:'var(--font-body)',
+                letterSpacing:'-0.01em',
+                boxShadow: isActive?'0 2px 8px rgba(31,216,136,0.15)':'none',
+              }}
+              onMouseDown={e=>e.currentTarget.style.transform='scale(0.95)'}
+              onMouseUp={e=>e.currentTarget.style.transform='scale(1)'}
+              onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
+              >
+                <Icon size={16} active={isActive}/>
+                <span>{label}</span>
+              </button>
+            </Link>
           )
         })}
       </div>

@@ -1,7 +1,9 @@
 import React, { useState, useCallback } from 'react'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { useStore } from './hooks/useStore.js'
 import { useTheme } from './hooks/useTheme.jsx'
 import TopNav from './components/TopNav.jsx'
+import BottomNav from './components/BottomNav.jsx'
 import AddExpenseModal from './components/AddExpenseModal.jsx'
 import { Toast, BgOrbs } from './components/UI.jsx'
 
@@ -13,7 +15,7 @@ import AccountScreen  from './screens/AccountScreen.jsx'
 
 function AppContent() {
   const { theme, toggleTheme } = useTheme()
-  const [tab, setTab]         = useState('home')
+  const location = useLocation()
   const [showAdd, setShowAdd] = useState(false)
   const [toast, setToast]     = useState(null)
 
@@ -43,16 +45,19 @@ function AppContent() {
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative' }}>
       <BgOrbs/>
 
-      <TopNav active={tab} onChange={setTab}/>
+      <TopNav currentPath={location.pathname}/>
+      <BottomNav currentPath={location.pathname}/>
 
-      <div style={{ flex:1, overflow:'auto', display:'flex', flexDirection:'column', position:'relative', zIndex:1, marginTop:72 }}>
-        {tab==='home'     && <HomeScreen currentUser={currentUser} friends={friends} groups={groups} expenses={expenses}
+      <div style={{ flex:1, overflow:'auto', display:'flex', flexDirection:'column', position:'relative', zIndex:1, marginTop:72, marginBottom:80 }}>
+        <Routes>
+          <Route path="/" element={<HomeScreen currentUser={currentUser} friends={friends} groups={groups} expenses={expenses}
             totalOwed={totalOwed} totalOwe={totalOwe} netBalance={netBalance}
-            onAddExpense={()=>setShowAdd(true)} onNavigate={setTab}/>}
-        {tab==='groups'   && <GroupsScreen groups={groups} friends={friends} expenses={expenses} onAddGroup={addGroup}/>}
-        {tab==='friends'  && <FriendsScreen friends={friends} expenses={expenses} onSettle={handleSettle} onAddFriend={addFriend}/>}
-        {tab==='activity' && <ActivityScreen expenses={expenses} friends={friends} onAddExpense={()=>setShowAdd(true)}/>}
-        {tab==='account'  && <AccountScreen currentUser={currentUser} friends={friends} expenses={expenses}/>}
+            onAddExpense={()=>setShowAdd(true)} />}/>
+          <Route path="/groups" element={<GroupsScreen groups={groups} friends={friends} expenses={expenses} onAddGroup={addGroup}/>}/>
+          <Route path="/friends" element={<FriendsScreen friends={friends} expenses={expenses} onSettle={handleSettle} onAddFriend={addFriend}/>}/>
+          <Route path="/activity" element={<ActivityScreen expenses={expenses} friends={friends} onAddExpense={()=>setShowAdd(true)}/>}/>
+          <Route path="/account" element={<AccountScreen currentUser={currentUser} friends={friends} expenses={expenses}/>}/>
+        </Routes>
       </div>
 
       <AddExpenseModal open={showAdd} onClose={()=>setShowAdd(false)}
@@ -98,7 +103,9 @@ import { ThemeProvider } from './hooks/useTheme.jsx'
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <Router>
+        <AppContent />
+      </Router>
     </ThemeProvider>
   )
 }

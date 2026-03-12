@@ -1,14 +1,15 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
 const TABS = [
-  { id:'home',     label:'Home',     Icon:HomeIcon },
-  { id:'groups',   label:'Groups',   Icon:GroupsIcon },
-  { id:'friends',  label:'Friends',  Icon:FriendsIcon },
-  { id:'activity', label:'Activity', Icon:ActivityIcon },
-  { id:'account',  label:'Account',  Icon:AccountIcon },
+  { path:'/',         label:'Home',     Icon:HomeIcon },
+  { path:'/groups',   label:'Groups',   Icon:GroupsIcon },
+  { path:'/friends',  label:'Friends',  Icon:FriendsIcon },
+  { path:'/activity', label:'Activity', Icon:ActivityIcon },
+  { path:'/account',  label:'Account',  Icon:AccountIcon },
 ]
 
-export default function BottomNav({ active, onChange }) {
+export default function BottomNav({ currentPath }) {
   return (
     <nav style={{
       position:'fixed', bottom:0,
@@ -24,49 +25,52 @@ export default function BottomNav({ active, onChange }) {
       zIndex:200,
       transition:'background .3s, box-shadow .3s',
     }}>
-      {TABS.map(({id,label,Icon})=>{
-        const isActive = active===id
+      {TABS.map(({path,label,Icon})=>{
+        const isActive = currentPath === path
         return (
-          <button key={id} onClick={()=>onChange(id)} style={{
-            flex:1, display:'flex', flexDirection:'column',
-            alignItems:'center', gap:2,
-            padding:'9px 0 6px',
-            background:'none', border:'none',
-            color: isActive?'#1FD888':'var(--text3)',
-            fontSize:9, fontWeight:isActive?800:500,
-            cursor:'pointer',
-            transition:'color .2s, transform .12s',
-            textTransform:'uppercase', letterSpacing:'0.4px',
-            fontFamily:'var(--font-body)',
-            position:'relative',
-          }}
-          onMouseDown={e=>e.currentTarget.style.transform='scale(0.88)'}
-          onMouseUp={e=>e.currentTarget.style.transform='scale(1)'}
-          onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
-          >
-            {isActive && (
+          <Link key={path} to={path} style={{flex:1, textDecoration:'none'}}>
+            <button style={{
+              flex:1, display:'flex', flexDirection:'column',
+              alignItems:'center', gap:2,
+              padding:'9px 0 6px',
+              background:'none', border:'none',
+              color: isActive?'#1FD888':'var(--text3)',
+              fontSize:9, fontWeight:isActive?800:500,
+              cursor:'pointer',
+              transition:'color .2s, transform .12s',
+              textTransform:'uppercase', letterSpacing:'0.4px',
+              fontFamily:'var(--font-body)',
+              position:'relative',
+              width:'100%',
+            }}
+            onMouseDown={e=>e.currentTarget.style.transform='scale(0.88)'}
+            onMouseUp={e=>e.currentTarget.style.transform='scale(1)'}
+            onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
+            >
+              {isActive && (
+                <div style={{
+                  position:'absolute', top:0, left:'50%', transform:'translateX(-50%)',
+                  width:28, height:3,
+                  background:'linear-gradient(90deg,#1FD888,#4BE5A0)',
+                  borderRadius:'0 0 4px 4px',
+                  boxShadow:'0 2px 8px rgba(31,216,136,0.55)',
+                }}/>
+              )}
               <div style={{
-                position:'absolute', top:0, left:'50%', transform:'translateX(-50%)',
-                width:28, height:3,
-                background:'linear-gradient(90deg,#1FD888,#4BE5A0)',
-                borderRadius:'0 0 4px 4px',
-                boxShadow:'0 2px 8px rgba(31,216,136,0.55)',
-              }}/>
-            )}
-            <div style={{
-              width:34, height:34, borderRadius:11,
-              display:'flex', alignItems:'center', justifyContent:'center',
-              background: isActive
-                ? 'linear-gradient(135deg,rgba(31,216,136,0.25),rgba(31,216,136,0.15))'
-                : 'transparent',
-              border: isActive?'1px solid rgba(31,216,136,0.30)':'1px solid transparent',
-              boxShadow: isActive?'0 3px 10px rgba(31,216,136,0.20)':'none',
-              transition:'all .2s',
-            }}>
-              <Icon size={19} active={isActive}/>
-            </div>
-            {label}
-          </button>
+                width:34, height:34, borderRadius:11,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                background: isActive
+                  ? 'linear-gradient(135deg,rgba(31,216,136,0.25),rgba(31,216,136,0.15))'
+                  : 'transparent',
+                border: isActive?'1px solid rgba(31,216,136,0.30)':'1px solid transparent',
+                boxShadow: isActive?'0 3px 10px rgba(31,216,136,0.20)':'none',
+                transition:'all .2s',
+              }}>
+                <Icon size={19} active={isActive}/>
+              </div>
+              {label}
+            </button>
+          </Link>
         )
       })}
     </nav>
