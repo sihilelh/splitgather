@@ -1,0 +1,13 @@
+{
+  "name": "fairshare",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "workspaces":[
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
