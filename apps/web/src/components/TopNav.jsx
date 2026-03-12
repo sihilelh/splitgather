@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth.jsx'
 
 const TABS = [
   { path:'/',         label:'Home',     Icon:HomeIcon },
@@ -10,6 +11,8 @@ const TABS = [
 ]
 
 export default function TopNav({ currentPath }) {
+  const { user } = useAuth()
+
   return (
     <nav style={{
       position:'fixed', top:0, left:0, right:0,
@@ -38,49 +41,66 @@ export default function TopNav({ currentPath }) {
         UniSplit
       </div>
 
-      {/* Navigation Items */}
-      <div style={{
-        display:'flex',
-        gap:8,
-        alignItems:'center',
-      }}>
-        {TABS.map(({path,label,Icon})=>{
-          const isActive = currentPath === path
-          return (
-            <Link key={path} to={path} style={{textDecoration:'none'}}>
-              <button style={{
-                display:'flex',
-                alignItems:'center',
-                gap:6,
-                padding:'8px 14px',
-                background: isActive
-                  ? 'linear-gradient(135deg,rgba(31,216,136,0.20),rgba(31,216,136,0.10))'
-                  : 'transparent',
-                border: isActive?'1.5px solid rgba(31,216,136,0.30)':'1.5px solid transparent',
-                borderRadius:'var(--r-md)',
-                color: isActive?'var(--accent)':'var(--text2)',
-                fontSize:13,
-                fontWeight: isActive?700:600,
-                cursor:'pointer',
-                transition:'all .2s',
-                fontFamily:'var(--font-body)',
-                letterSpacing:'-0.01em',
-                boxShadow: isActive?'0 2px 8px rgba(31,216,136,0.15)':'none',
-              }}
-              onMouseDown={e=>e.currentTarget.style.transform='scale(0.95)'}
-              onMouseUp={e=>e.currentTarget.style.transform='scale(1)'}
-              onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
-              >
-                <Icon size={16} active={isActive}/>
-                <span>{label}</span>
-              </button>
-            </Link>
-          )
-        })}
-      </div>
+      {/* Navigation Items + user pill */}
+      <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+        <div style={{
+          display:'flex',
+          gap:8,
+          alignItems:'center',
+        }}>
+          {TABS.map(({path,label,Icon})=>{
+            const isActive = currentPath === path
+            return (
+              <Link key={path} to={path} style={{textDecoration:'none'}}>
+                <button style={{
+                  display:'flex',
+                  alignItems:'center',
+                  gap:6,
+                  padding:'8px 14px',
+                  background: isActive
+                    ? 'linear-gradient(135deg,rgba(31,216,136,0.20),rgba(31,216,136,0.10))'
+                    : 'transparent',
+                  border: isActive?'1.5px solid rgba(31,216,136,0.30)':'1.5px solid transparent',
+                  borderRadius:'var(--r-md)',
+                  color: isActive?'var(--accent)':'var(--text2)',
+                  fontSize:13,
+                  fontWeight: isActive?700:600,
+                  cursor:'pointer',
+                  transition:'all .2s',
+                  fontFamily:'var(--font-body)',
+                  letterSpacing:'-0.01em',
+                  boxShadow: isActive?'0 2px 8px rgba(31,216,136,0.15)':'none',
+                }}
+                onMouseDown={e=>e.currentTarget.style.transform='scale(0.95)'}
+                onMouseUp={e=>e.currentTarget.style.transform='scale(1)'}
+                onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
+                >
+                  <Icon size={16} active={isActive}/>
+                  <span>{label}</span>
+                </button>
+              </Link>
+            )
+          })}
+        </div>
 
-      {/* Spacer for alignment */}
-      <div style={{ width:60 }}/>
+        {user && (
+          <div style={{
+            padding:'6px 10px',
+            borderRadius:999,
+            background:'rgba(255,255,255,0.85)',
+            border:'1px solid var(--glass-border)',
+            fontSize:12,
+            fontWeight:600,
+            color:'var(--text2)',
+            maxWidth:160,
+            overflow:'hidden',
+            textOverflow:'ellipsis',
+            whiteSpace:'nowrap',
+          }}>
+            {user.name || user.email}
+          </div>
+        )}
+      </div>
     </nav>
   )
 }

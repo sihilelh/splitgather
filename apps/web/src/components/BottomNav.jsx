@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth.jsx'
 
 const TABS = [
   { path:'/',         label:'Home',     Icon:HomeIcon },
@@ -10,6 +11,8 @@ const TABS = [
 ]
 
 export default function BottomNav({ currentPath }) {
+  const { user } = useAuth()
+
   return (
     <nav style={{
       position:'fixed', bottom:0,
@@ -26,6 +29,10 @@ export default function BottomNav({ currentPath }) {
       transition:'background .3s, box-shadow .3s',
     }}>
       {TABS.map(({path,label,Icon})=>{
+        if (!user && path !== '/') {
+          // When logged out, bottom nav is hidden by ProtectedRoute for main routes anyway;
+          // keep the buttons but they will redirect to login immediately.
+        }
         const isActive = currentPath === path
         return (
           <Link key={path} to={path} style={{flex:1, textDecoration:'none'}}>

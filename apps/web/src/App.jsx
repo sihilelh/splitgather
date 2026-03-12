@@ -2,16 +2,20 @@ import React, { useState, useCallback } from 'react'
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { useStore } from './hooks/useStore.js'
 import { useTheme } from './hooks/useTheme.jsx'
+import { AuthProvider } from './hooks/useAuth.jsx'
 import TopNav from './components/TopNav.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import AddExpenseModal from './components/AddExpenseModal.jsx'
 import { Toast, BgOrbs } from './components/UI.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
 
 import HomeScreen     from './screens/HomeScreen.jsx'
 import GroupsScreen   from './screens/GroupsScreen.jsx'
 import FriendsScreen  from './screens/FriendsScreen.jsx'
 import ActivityScreen from './screens/ActivityScreen.jsx'
 import AccountScreen  from './screens/AccountScreen.jsx'
+import LoginScreen    from './screens/LoginScreen.jsx'
+import RegisterScreen from './screens/RegisterScreen.jsx'
 
 function AppContent() {
   const { theme, toggleTheme } = useTheme()
@@ -50,13 +54,77 @@ function AppContent() {
 
       <div style={{ flex:1, overflow:'auto', display:'flex', flexDirection:'column', position:'relative', zIndex:1, marginTop:72, marginBottom:80 }}>
         <Routes>
-          <Route path="/" element={<HomeScreen currentUser={currentUser} friends={friends} groups={groups} expenses={expenses}
-            totalOwed={totalOwed} totalOwe={totalOwe} netBalance={netBalance}
-            onAddExpense={()=>setShowAdd(true)} />}/>
-          <Route path="/groups" element={<GroupsScreen groups={groups} friends={friends} expenses={expenses} onAddGroup={addGroup}/>}/>
-          <Route path="/friends" element={<FriendsScreen friends={friends} expenses={expenses} onSettle={handleSettle} onAddFriend={addFriend}/>}/>
-          <Route path="/activity" element={<ActivityScreen expenses={expenses} friends={friends} onAddExpense={()=>setShowAdd(true)}/>}/>
-          <Route path="/account" element={<AccountScreen currentUser={currentUser} friends={friends} expenses={expenses}/>}/>
+          <Route path="/login" element={<LoginScreen />} />
+          <Route path="/register" element={<RegisterScreen />} />
+
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <HomeScreen
+                  currentUser={currentUser}
+                  friends={friends}
+                  groups={groups}
+                  expenses={expenses}
+                  totalOwed={totalOwed}
+                  totalOwe={totalOwe}
+                  netBalance={netBalance}
+                  onAddExpense={()=>setShowAdd(true)}
+                />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/groups"
+            element={
+              <ProtectedRoute>
+                <GroupsScreen
+                  groups={groups}
+                  friends={friends}
+                  expenses={expenses}
+                  onAddGroup={addGroup}
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/friends"
+            element={
+              <ProtectedRoute>
+                <FriendsScreen
+                  friends={friends}
+                  expenses={expenses}
+                  onSettle={handleSettle}
+                  onAddFriend={addFriend}
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/activity"
+            element={
+              <ProtectedRoute>
+                <ActivityScreen
+                  expenses={expenses}
+                  friends={friends}
+                  onAddExpense={()=>setShowAdd(true)}
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account"
+            element={
+              <ProtectedRoute>
+                <AccountScreen
+                  currentUser={currentUser}
+                  friends={friends}
+                  expenses={expenses}
+                />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </div>
 
@@ -103,9 +171,11 @@ import { ThemeProvider } from './hooks/useTheme.jsx'
 export default function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <AuthProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   )
 }
