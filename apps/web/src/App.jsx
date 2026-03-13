@@ -18,7 +18,6 @@ import LoginScreen    from './screens/LoginScreen.jsx'
 import RegisterScreen from './screens/RegisterScreen.jsx'
 
 function AppContent() {
-  const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   const [showAdd, setShowAdd] = useState(false)
   const [toast, setToast]     = useState(null)
@@ -36,13 +35,16 @@ function AppContent() {
 
   const handleAddExpense = useCallback((data) => {
     addExpense(data)
-    showToast(`"${data.title}" added · Rs.${(data.amount/(data.splitWith.length+1)).toFixed(2)} each`)
+    showToast(`"${data.title}" added · LKR ${(data.amount/(data.splitWith.length+1)).toFixed(2)} each`)
   }, [addExpense])
 
-  const handleSettle = useCallback((friendId) => {
+  const handleSettle = useCallback((friendId, paymentDetails) => {
     settleWithFriend(friendId)
     const name = friends.find(f=>f.id===friendId)?.name||'Friend'
-    showToast(`Settled up with ${name} 🎉`)
+    const message = paymentDetails
+      ? `Paid LKR ${paymentDetails.amount.toFixed(2)} to ${name} via ${paymentDetails.method} 🎉`
+      : `Settled up with ${name} 🎉`
+    showToast(message)
   }, [settleWithFriend, friends])
 
   return (
@@ -132,36 +134,6 @@ function AppContent() {
         friends={friends} groups={groups} onAdd={handleAddExpense}/>
 
       <Toast message={toast}/>
-
-      {/* Theme Toggle */}
-      <button
-        onClick={toggleTheme}
-        style={{
-          position:'fixed', top:16, right:24, zIndex:250,
-          height:44,
-          paddingLeft:12, paddingRight:12,
-          minWidth:110,
-          borderRadius:22,
-          background:'var(--glass-bg)',
-          backdropFilter:'blur(24px) saturate(1.9)',
-          WebkitBackdropFilter:'blur(24px) saturate(1.9)',
-          border:'1.5px solid var(--glass-border)',
-          boxShadow:'var(--glass-shadow)',
-          display:'flex', alignItems:'center', justifyContent:'center', gap:6,
-          fontSize:13, cursor:'pointer',
-          transition:'transform .15s, box-shadow .2s, background .3s, border-color .3s',
-          color:'var(--accent)',
-          fontWeight:700,
-          fontFamily:'var(--font-body)',
-          letterSpacing:'-0.01em',
-        }}
-        onMouseDown={e => e.currentTarget.style.transform='scale(0.92)'}
-        onMouseUp={e => e.currentTarget.style.transform='scale(1)'}
-        onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}
-        title={theme === 'light' ? 'Switch to Night Mode' : 'Switch to Light Mode'}
-      >
-        {theme === 'light' ? <>🌙 <span>Night</span></> : <>☀️ <span>Light</span></>}
-      </button>
     </div>
   )
 }

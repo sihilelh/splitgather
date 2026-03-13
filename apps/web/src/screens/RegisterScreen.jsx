@@ -16,7 +16,11 @@ export default function RegisterScreen() {
   async function handleSubmit(e) {
     e.preventDefault()
     setLocalError(null)
-    const { error: err } = await register({ name, email, password })
+    const { error: err } = await register({
+      name,
+      email,
+      password
+    })
     if (err) {
       setLocalError(err)
       return
@@ -43,7 +47,7 @@ export default function RegisterScreen() {
           Create your account ✨
         </h1>
         <p style={{ fontSize:13, color:'var(--text2)', marginBottom:18 }}>
-          Join UniSplit and make shared expenses effortless.
+          Join SplitGather and make shared expenses effortless.
         </p>
 
         {displayError && (
@@ -63,10 +67,11 @@ export default function RegisterScreen() {
 
         <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <label style={{ fontSize:12, fontWeight:600, color:'var(--text2)', display:'flex', flexDirection:'column', gap:6 }}>
-            <span>Name</span>
+            <span>Full Name</span>
             <input
               type="text"
               required
+              placeholder="Enter your full name"
               value={name}
               onChange={e=>setName(e.target.value)}
               style={{
@@ -87,6 +92,7 @@ export default function RegisterScreen() {
             <input
               type="email"
               required
+              placeholder="you@example.com"
               value={email}
               onChange={e=>setEmail(e.target.value)}
               style={{
@@ -107,6 +113,7 @@ export default function RegisterScreen() {
             <input
               type="password"
               required
+              placeholder="Create a strong password"
               value={password}
               onChange={e=>setPassword(e.target.value)}
               style={{
@@ -120,6 +127,21 @@ export default function RegisterScreen() {
                 background:'rgba(255,255,255,0.92)',
               }}
             />
+            <div style={{
+              fontSize:11,
+              color:'var(--text2)',
+              background:'rgba(59,130,246,0.06)',
+              border:'1px solid rgba(59,130,246,0.2)',
+              borderRadius:8,
+              padding:'8px 10px',
+              lineHeight:'1.5',
+            }}>
+              <strong style={{ color:'var(--text)' }}>Password must include:</strong>
+              <div>• Uppercase letters (A-Z)</div>
+              <div>• Lowercase letters (a-z)</div>
+              <div>• Numbers (0-9)</div>
+              <div>• Symbols (!@#$%^&*)</div>
+            </div>
           </label>
 
           <button

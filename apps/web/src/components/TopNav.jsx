@@ -1,6 +1,7 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useTheme } from '../hooks/useTheme.jsx'
 
 const TABS = [
   { path:'/',         label:'Home',     Icon:HomeIcon },
@@ -11,7 +12,16 @@ const TABS = [
 ]
 
 export default function TopNav({ currentPath }) {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
+  const navigate = useNavigate()
+  const [showMenu, setShowMenu] = useState(false)
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+    setShowMenu(false)
+  }
 
   return (
     <nav style={{
@@ -38,25 +48,28 @@ export default function TopNav({ currentPath }) {
         letterSpacing:'-0.02em',
         fontFamily:'var(--font-body)',
       }}>
-        UniSplit
+        SplitGather
       </div>
 
-      {/* Navigation Items + user pill */}
-      <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+      {/* Right side: User menu and dropdown */}
+      <div style={{ display:'flex', gap:12, alignItems:'center', position:'relative' }}>
+        {/* Quick nav for desktop */}
         <div style={{
           display:'flex',
-          gap:8,
+          gap:4,
           alignItems:'center',
         }}>
-          {TABS.map(({path,label,Icon})=>{
+          {TABS.slice(0, 3).map(({path,label,Icon})=>{
             const isActive = currentPath === path
             return (
               <Link key={path} to={path} style={{textDecoration:'none'}}>
                 <button style={{
                   display:'flex',
                   alignItems:'center',
-                  gap:6,
-                  padding:'8px 14px',
+                  justifyContent:'center',
+                  width:40,
+                  height:40,
+                  padding:0,
                   background: isActive
                     ? 'linear-gradient(135deg,rgba(31,216,136,0.20),rgba(31,216,136,0.10))'
                     : 'transparent',
@@ -70,40 +83,166 @@ export default function TopNav({ currentPath }) {
                   fontFamily:'var(--font-body)',
                   letterSpacing:'-0.01em',
                   boxShadow: isActive?'0 2px 8px rgba(31,216,136,0.15)':'none',
+                  title: label,
                 }}
                 onMouseDown={e=>e.currentTarget.style.transform='scale(0.95)'}
                 onMouseUp={e=>e.currentTarget.style.transform='scale(1)'}
                 onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
                 >
-                  <Icon size={16} active={isActive}/>
-                  <span>{label}</span>
+                  <Icon size={18} active={isActive}/>
                 </button>
               </Link>
             )
           })}
         </div>
 
-        {user && (
-          <div style={{
-            padding:'6px 10px',
-            borderRadius:999,
-            background:'rgba(255,255,255,0.85)',
-            border:'1px solid var(--glass-border)',
-            fontSize:12,
-            fontWeight:600,
-            color:'var(--text2)',
-            maxWidth:160,
-            overflow:'hidden',
-            textOverflow:'ellipsis',
-            whiteSpace:'nowrap',
-          }}>
-            {user.name || user.email}
-          </div>
-        )}
+        {/* User menu dropdown */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            style={{
+              padding:'8px 12px',
+              borderRadius:999,
+              background:'rgba(255,255,255,0.85)',
+              border:'1px solid var(--glass-border)',
+              fontSize:12,
+              fontWeight:600,
+              color:'var(--text)',
+              cursor:'pointer',
+              fontFamily:'var(--font-body)',
+              display:'flex',
+              alignItems:'center',
+              gap:6,
+              transition:'all .2s',
+            }}
+            onMouseDown={e=>e.currentTarget.style.transform='scale(0.95)'}
+            onMouseUp={e=>e.currentTarget.style.transform='scale(1)'}
+          >
+            <span>👤 {user?.name?.split(' ')[0] || 'Menu'}</span>
+            <span style={{
+              fontSize:10,
+              transform: showMenu ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition:'transform .2s',
+            }}>
+              ▼
+            </span>
+          </button>
+
+          {/* Dropdown Menu */}
+          {showMenu && (
+            <div style={{
+              position:'absolute',
+              top:'100%',
+              right:0,
+              marginTop:8,
+              background:'var(--card-bg)',
+              borderRadius:'var(--r-lg)',
+              border:'1.5px solid var(--glass-border)',
+              boxShadow:'0 8px 32px rgba(0,0,0,0.15)',
+              backdropFilter:'blur(12px)',
+              WebkitBackdropFilter:'blur(12px)',
+              minWidth:200,
+              zIndex:300,
+              overflow:'hidden',
+            }}>
+              {/* All nav items */}
+              {TABS.map(({path, label, Icon}) => {
+                const isActive = currentPath === path
+                return (
+                  <Link key={path} to={path} style={{textDecoration:'none'}}>
+                    <button
+                      onClick={() => setShowMenu(false)}
+                      style={{
+                        width:'100%',
+                        padding:'12px 16px',
+                        display:'flex',
+                        alignItems:'center',
+                        gap:10,
+                        background: isActive ? 'rgba(31,216,136,0.12)' : 'transparent',
+                        border:'none',
+                        borderLeft:`3px solid ${isActive ? 'var(--accent)' : 'transparent'}`,
+                        color: isActive?'var(--accent)':'var(--text)',
+                        fontSize:13,
+                        fontWeight: isActive?700:600,
+                        cursor:'pointer',
+                        fontFamily:'var(--font-body)',
+                        transition:'all .2s',
+                      }}
+                    >
+                      <Icon size={16} active={isActive}/>
+                      <span>{label}</span>
+                    </button>
+                  </Link>
+                )
+              })}
+              
+              <div style={{
+                height:'1px',
+                background:'rgba(255,255,255,0.10)',
+                margin:'6px 0',
+              }}/>
+              <button
+                onClick={() => {
+                  toggleTheme()
+                  setShowMenu(false)
+                }}
+                style={{
+                  width:'100%',
+                  padding:'12px 16px',
+                  display:'flex',
+                  alignItems:'center',
+                  gap:10,
+                  background:'transparent',
+                  border:'none',
+                  color:'var(--text)',
+                  fontSize:13,
+                  fontWeight:600,
+                  cursor:'pointer',
+                  fontFamily:'var(--font-body)',
+                  transition:'all .2s',
+                }}
+              >
+                <span style={{fontSize:16}}>{theme === 'light' ? '🌙' : '☀️'}</span>
+                <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+              </button>
+
+              <div style={{
+                height:'1px',
+                background:'rgba(255,255,255,0.10)',
+                margin:'6px 0',
+              }}/>
+
+              {/* 
+              {/* Logout button */}
+              <button
+                onClick={handleLogout}
+                style={{
+                  width:'100%',
+                  padding:'12px 16px',
+                  display:'flex',
+                  alignItems:'center',
+                  gap:10,
+                  background:'transparent',
+                  border:'none',
+                  color:'#ef4444',
+                  fontSize:13,
+                  fontWeight:600,
+                  cursor:'pointer',
+                  fontFamily:'var(--font-body)',
+                  transition:'all .2s',
+                }}
+              >
+                <span style={{fontSize:16}}>🚪</span>
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   )
 }
+
 
 function HomeIcon({size,active}) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active?2.3:1.8} strokeLinecap="round" strokeLinejoin="round">

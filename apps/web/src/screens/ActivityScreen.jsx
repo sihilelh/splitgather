@@ -81,7 +81,7 @@ export default function ActivityScreen({ expenses, friends, onAddExpense }) {
                         {(youPaid||youOwe) && (
                           <div style={{ fontSize:13, fontWeight:800, marginTop:2,
                             color:youPaid?'var(--positive)':'var(--negative)' }}>
-                            {youPaid?`+Rs.${(e.amount-parseFloat(per)).toFixed(2)}`:`-Rs.${per}`}
+                            {youPaid?`+LKR ${(e.amount-parseFloat(per)).toFixed(2)}`:`-LKR ${per}`}
                           </div>
                         )}
                         {!youPaid&&!youOwe && <div style={{ fontSize:11, color:'var(--text3)' }}>not involved</div>}
