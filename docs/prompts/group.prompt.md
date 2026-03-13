@@ -1,6 +1,6 @@
 Add Groups Prompt 
 
-Goal: Improving the groups tab in our web app
+Goal: 
 Context: 
 Group icon and group name should be saved in the database, when "Create Group" button is clicked.
 
