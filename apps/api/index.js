@@ -10,7 +10,13 @@ const PORT = process.env.PORT || 4000;
 // The db instance is created when imported, establishing the connection
 console.log('Database connection initialized');
 
-app.use(cors());
+// CORS configuration - allow frontend origin with credentials
+app.use(cors({
+  origin: 'http://localhost:5173', // Vite dev server default port
+  credentials: true, // Allow cookies/auth headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 
 app.use('/api', apiRouter);
