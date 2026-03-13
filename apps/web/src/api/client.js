@@ -1,10 +1,10 @@
 // Simple API client wrapper for the web app
-// - Prefixes all requests with /api
+// - Prefixes all requests with http://localhost:4000/api
 // - Attaches JSON headers
 // - Adds Authorization header when a token exists in localStorage
 // - Normalises error responses
 
-const API_BASE = '/api'
+const API_BASE = 'http://localhost:4000/api'
 
 function getToken() {
   try {
