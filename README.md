@@ -26,6 +26,24 @@ You should see files like `package.json`, `apps`, or `docs` in this folder if yo
 
 ---
 
+## First Time Setup
+
+If this is the first time running the application, you need to install dependencies and set up the database:
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Create the database:**
+   ```bash
+   npm run db:migrate --workspace=api
+   ```
+
+After completing these steps, you can proceed to run the application.
+
+---
+
 ## Run Both Backend and Frontend
 
 To start **both the Backend API and the Frontend together**, run:
