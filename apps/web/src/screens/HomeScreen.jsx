@@ -55,17 +55,17 @@ export default function HomeScreen({ currentUser, friends, groups, expenses, tot
           <div style={{ fontSize:46, fontWeight:800, color: netBalance>=0?'var(--accent)':'var(--negative)',
             letterSpacing:'-0.04em', lineHeight:1, marginBottom:14 }}>
             {netBalance>=0?'+':''}{Math.abs(netBalance).toFixed(2)}
-            <span style={{ fontSize:20 }}> USD</span>
+            <span style={{ fontSize:20 }}> LKR</span>
           </div>
           <div style={{ display:'flex', gap:20 }}>
             <div>
               <div style={{ fontSize:11, color:'var(--text3)', fontWeight:600, marginBottom:1 }}>Owed to you</div>
-              <div style={{ fontSize:16, fontWeight:800, color:'var(--positive)' }}>+Rs.{totalOwed.toFixed(2)}</div>
+              <div style={{ fontSize:16, fontWeight:800, color:'var(--positive)' }}>+LKR {totalOwed.toFixed(2)}</div>
             </div>
             <div style={{ width:1, background:'rgba(112,112,112,0.15)' }}/>
             <div>
               <div style={{ fontSize:11, color:'var(--text3)', fontWeight:600, marginBottom:1 }}>You owe</div>
-              <div style={{ fontSize:16, fontWeight:800, color:'var(--negative)' }}>-Rs.{totalOwe.toFixed(2)}</div>
+              <div style={{ fontSize:16, fontWeight:800, color:'var(--negative)' }}>-LKR {totalOwe.toFixed(2)}</div>
             </div>
           </div>
         </div>
@@ -134,7 +134,7 @@ export default function HomeScreen({ currentUser, friends, groups, expenses, tot
                 >
                   <Avatar initials={f.initials} color={f.color} size={38}/>
                   <div style={{ fontSize:12, fontWeight:700, color:'var(--text2)' }}>{f.name.split(' ')[0]}</div>
-                  <div style={{ fontSize:12, fontWeight:800, color:'var(--positive)' }}>+Rs.{f.balance.toFixed(2)}</div>
+                  <div style={{ fontSize:12, fontWeight:800, color:'var(--positive)' }}>+LKR {f.balance.toFixed(2)}</div>
                 </div>
               ))}
             </div>
@@ -192,7 +192,7 @@ export default function HomeScreen({ currentUser, friends, groups, expenses, tot
                   <div style={{ textAlign:'right' }}>
                     <div style={{ fontWeight:800, fontSize:15,
                       color:youPaid?'var(--positive)':'var(--negative)' }}>
-                      {youPaid?`+Rs.${(e.amount-parseFloat(per)).toFixed(2)}`:`-Rs.${per}`}
+                      {youPaid?`+LKR ${(e.amount-parseFloat(per)).toFixed(2)}`:`-LKR ${per}`}
                     </div>
                     <div style={{ fontSize:11, color:'var(--text3)' }}>{youPaid?'lent':'owe'}</div>
                   </div>

@@ -85,7 +85,7 @@ export function BalanceBadge({ value, small=false }) {
       background: pos?'var(--positive-bg)':'var(--negative-bg)',
       border:`1px solid ${pos?'rgba(31,216,136,0.25)':'rgba(210,50,20,0.20)'}`,
       padding:'3px 10px', borderRadius:999 }}>
-      {pos ? `+Rs.${value.toFixed(2)}` : `-Rs.${Math.abs(value).toFixed(2)}`}
+      {pos ? `+LKR ${value.toFixed(2)}` : `-LKR ${Math.abs(value).toFixed(2)}`}
     </span>
   )
 }

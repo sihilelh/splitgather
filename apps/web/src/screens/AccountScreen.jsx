@@ -9,7 +9,7 @@ const MENU = [
   { icon:'🔔', label:'Notifications',         section:'Preferences' },
   { icon:'🔒', label:'Security',             section:'Preferences' },
   { icon:'🎨', label:'Appearance',           section:'Preferences' },
-  { icon:'⭐', label:'Rate UniSplit',         section:'Feedback' },
+  { icon:'⭐', label:'Rate SplitGather',         section:'Feedback' },
   { icon:'💬', label:'Send Feedback',        section:'Feedback' },
   { icon:'❓', label:'Help & Support',       section:'Feedback' },
 ]
@@ -174,7 +174,7 @@ export default function AccountScreen({ currentUser, friends, expenses }) {
         </div>
 
         <div style={{ textAlign:'center', paddingBottom:20, color:'var(--text3)', fontSize:12, fontWeight:500 }}>
-          UniSplit v1.0 · Made for uni students 🎓
+          SplitGather v1.0 · Made for uni students 🎓
         </div>
       </div>
     </div>

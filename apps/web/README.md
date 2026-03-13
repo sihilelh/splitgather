@@ -1,4 +1,4 @@
-# UniSplit 💸
+# SplitGather 💸
 ### Student Expense & Loan Tracker
 
 A mobile-first React app for university students to track shared expenses, split bills, and manage group loans.
