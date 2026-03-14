@@ -1,18 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Card, SectionLabel, Avatar, BalanceBadge, Button, EmptyState, BottomSheet, Input } from '../components/UI.jsx'
 import { useFriends } from '../hooks/useFriends.jsx'
-
-const COLORS = ['#1FD888','#e8a820','#3b82f6','#a78bfa','#f97316','#ec4899','#06b6d4']
-
-// Helper to get initials from name
-function getInitials(name) {
-  return name.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-}
-
-// Helper to get color for a user (consistent based on ID)
-function getColorForUser(userId) {
-  return COLORS[userId % COLORS.length]
-}
+import { getInitials, getColorForUser } from '../utils/helpers.js'
+import BackButton from '../components/BackButton.jsx'
+import SearchInput from '../components/SearchInput.jsx'
+import FriendRow from '../components/FriendRow.jsx'
+import ExpenseCard from '../components/ExpenseCard.jsx'
+import BalanceHeroCard from '../components/BalanceHeroCard.jsx'
+import CurrencyInput from '../components/CurrencyInput.jsx'
+import PaymentMethodSelector from '../components/PaymentMethodSelector.jsx'
+import LoadingState from '../components/LoadingState.jsx'
+import ErrorState from '../components/ErrorState.jsx'
 
 export default function FriendsScreen({ expenses, onSettle }) {
   const { friends, loading, error, searchUsers: searchUsersAPI, addFriend: addFriendAPI, getFriendsByCategory } = useFriends()
@@ -82,38 +80,18 @@ export default function FriendsScreen({ expenses, onSettle }) {
   const friendExps = selected ? expenses.filter(e => e.paidBy === selected || e.splitWith?.includes(selected)) : []
 
   if (loading && friends.length === 0) {
-    return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 90 }}>
-        <div style={{ textAlign: 'center', color: 'var(--text2)' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-          <div>Loading friends...</div>
-        </div>
-      </div>
-    )
+    return <LoadingState message="Loading friends..." />
   }
 
   if (error && friends.length === 0) {
-    return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 90 }}>
-        <div style={{ textAlign: 'center', color: 'var(--negative)' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
-          <div>{error}</div>
-        </div>
-      </div>
-    )
+    return <ErrorState message={error} />
   }
 
   if (selected && sf) {
     return (
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 90, position: 'relative', zIndex: 1 }}>
         <div className="a1" style={{ padding: '52px 20px 16px' }}>
-          <button onClick={() => setSelected(null)} style={{
-            background: 'none', border: 'none',
-            color: 'var(--accent)', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-            padding: '0 0 12px', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 4
-          }}>
-            ← Back
-          </button>
+          <BackButton onClick={() => setSelected(null)} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <Avatar initials={sf.initials} color={sf.color} size={58} />
             <div>
@@ -125,36 +103,14 @@ export default function FriendsScreen({ expenses, onSettle }) {
 
         <div style={{ padding: '0 16px' }}>
           {sf.balance !== 0 && (
-            <div className="a2" style={{
-              padding: '18px 18px',
-              background: sf.balance > 0
-                ? 'linear-gradient(135deg, rgba(31,216,136,0.15), rgba(31,216,136,0.10))'
-                : 'linear-gradient(135deg, rgba(210,50,20,0.12), rgba(255,100,60,0.08))',
-              border: `1.5px solid ${sf.balance > 0 ? 'rgba(31,216,136,0.25)' : 'rgba(210,50,20,0.22)'}`,
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              borderRadius: 'var(--r-lg)',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              marginBottom: 12,
-              boxShadow: `0 6px 20px ${sf.balance > 0 ? 'rgba(31,216,136,0.12)' : 'rgba(210,50,20,0.10)'}`,
-            }}>
-              <div>
-                <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 3, fontWeight: 600 }}>
-                  {sf.balance > 0 ? `${sf.name} owes you` : `You owe ${sf.name}`}
-                </div>
-                <div style={{
-                  fontSize: 32, fontWeight: 800, color: sf.balance > 0 ? 'var(--positive)' : 'var(--negative)',
-                  letterSpacing: '-0.03em'
-                }}>
-                  LKR {Math.abs(sf.balance).toFixed(2)}
-                </div>
-              </div>
-              <Button onClick={() => { setSettleAmount(Math.abs(sf.balance).toString()); setShowSettle(true) }}
-                variant={sf.balance > 0 ? 'primary' : 'danger'}
-                style={{ width: 'auto', padding: '10px 18px' }} size="sm">
-                Settle Up ✓
-              </Button>
-            </div>
+            <BalanceHeroCard
+              title={sf.balance > 0 ? `${sf.name} owes you` : `You owe ${sf.name}`}
+              balance={sf.balance}
+              color={sf.balance > 0 ? '#1FD888' : '#d23214'}
+              onAction={() => { setSettleAmount(Math.abs(sf.balance).toString()); setShowSettle(true) }}
+              actionLabel="Settle Up ✓"
+              style={{ padding: '18px 18px', marginBottom: 12 }}
+            />
           )}
           {sf.balance === 0 && (
             <div className="a2" style={{
@@ -170,32 +126,15 @@ export default function FriendsScreen({ expenses, onSettle }) {
           <SectionLabel>Shared Expenses · {friendExps.length}</SectionLabel>
           {friendExps.length === 0
             ? <EmptyState emoji="🤝" title="No shared expenses" subtitle="Add an expense to split with this friend" />
-            : friendExps.map(e => {
-              const youPaid = e.paidBy === 'u1'
-              const share = (e.amount / (e.splitWith.length + 1)).toFixed(2)
-              return (
-                <Card key={e.id}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2, color: 'var(--text)' }}>{e.title}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text3)' }}>{e.date}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2 }}>
-                        {youPaid ? 'You paid' : e.paidBy === sf.id ? `${sf.name} paid` : 'Someone paid'} · ${e.amount.toFixed(2)} total
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{
-                        fontWeight: 800, fontSize: 16,
-                        color: youPaid ? 'var(--positive)' : 'var(--negative)'
-                      }}>
-                        {youPaid ? `+LKR ${(e.amount - parseFloat(share)).toFixed(2)}` : `-LKR ${share}`}
-                      </div>
-                      <div style={{ fontSize: 11, color: 'var(--text3)' }}>{youPaid ? 'lent' : 'borrowed'}</div>
-                    </div>
-                  </div>
-                </Card>
-              )
-            })
+            : friendExps.map(e => (
+              <ExpenseCard
+                key={e.id}
+                expense={e}
+                friends={transformedFriends}
+                currentUserId="u1"
+                showBalance={true}
+              />
+            ))
           }
         </div>
       </div>
@@ -251,23 +190,10 @@ export default function FriendsScreen({ expenses, onSettle }) {
 
       <div style={{ padding: '0 16px' }}>
         <div className="a2">
-          <input value={search} onChange={e => setSearch(e.target.value)}
+          <SearchInput
+            value={search}
+            onChange={e => setSearch(e.target.value)}
             placeholder="🔍  Search friends…"
-            style={{
-              width: '100%',
-              background: 'rgba(255,255,255,0.55)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              border: '1.5px solid rgba(255,255,255,0.82)',
-              borderRadius: 'var(--r-md)',
-              color: 'var(--text)', padding: '11px 14px',
-              fontSize: 14, outline: 'none', marginBottom: 14,
-              fontFamily: 'var(--font-body)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              transition: 'border-color .2s, box-shadow .2s',
-            }}
-            onFocus={e => { e.target.style.borderColor = '#1FD888'; e.target.style.boxShadow = '0 0 0 3px rgba(31,216,136,.25)' }}
-            onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.82)'; e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)' }}
           />
         </div>
 
@@ -424,120 +350,34 @@ export default function FriendsScreen({ expenses, onSettle }) {
               </span>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{
-                display: 'block',
-                fontSize: 11,
-                fontWeight: 700,
-                color: 'var(--text3)',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                marginBottom: 6
-              }}>
-                Payment Amount (LKR)
-              </label>
-              <div style={{ position: 'relative', marginBottom: 8 }}>
-                <span style={{
-                  position: 'absolute',
-                  left: 14,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text3)',
-                  fontSize: 16,
-                  fontWeight: 800
-                }}>
-                  LKR
-                </span>
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={settleAmount}
-                  onChange={e => setSettleAmount(e.target.value)}
-                  style={{
-                    width: '100%',
-                    background: 'rgba(255,255,255,0.60)',
-                    backdropFilter: 'blur(12px)',
-                    WebkitBackdropFilter: 'blur(12px)',
-                    border: '1.5px solid rgba(255,255,255,0.80)',
-                    borderRadius: 'var(--r-md)',
-                    color: 'var(--text)',
-                    padding: '13px 14px 13px 50px',
-                    fontSize: 20,
-                    fontWeight: 700,
-                    outline: 'none',
-                    fontFamily: 'var(--font-body)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    transition: 'border-color .2s, box-shadow .2s',
-                  }}
-                  onFocus={e => {
-                    e.target.style.borderColor = '#1FD888'
-                    e.target.style.boxShadow = '0 0 0 3px rgba(31,216,136,.25)'
-                  }}
-                  onBlur={e => {
-                    e.target.style.borderColor = 'rgba(255,255,255,0.80)'
-                    e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)'
-                  }}
-                />
-              </div>
-              <button
-                onClick={() => setSettleAmount(Math.abs(sf.balance).toString())}
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: 'var(--accent)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px 0',
-                  fontFamily: 'var(--font-body)',
-                }}
-              >
-                Pay full amount (LKR {Math.abs(sf.balance).toFixed(2)})
-              </button>
-            </div>
+            <CurrencyInput
+              label="Payment Amount (LKR)"
+              value={settleAmount}
+              onChange={e => setSettleAmount(e.target.value)}
+              placeholder="0.00"
+            />
+            <button
+              onClick={() => setSettleAmount(Math.abs(sf.balance).toString())}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--accent)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px 0',
+                fontFamily: 'var(--font-body)',
+                marginTop: -8,
+                marginBottom: 16,
+              }}
+            >
+              Pay full amount (LKR {Math.abs(sf.balance).toFixed(2)})
+            </button>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{
-                display: 'block',
-                fontSize: 11,
-                fontWeight: 700,
-                color: 'var(--text3)',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                marginBottom: 8
-              }}>
-                Payment Method
-              </label>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {[
-                  { id: 'cash', label: '💵 Cash' },
-                  { id: 'bank', label: '🏦 Bank Transfer' },
-                  { id: 'mobile', label: '📱 Mobile Payment' },
-                  { id: 'other', label: '🔗 Other' },
-                ].map(method => (
-                  <button
-                    key={method.id}
-                    onClick={() => setPaymentMethod(method.id)}
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: 'var(--r-md)',
-                      border: `1.5px solid ${paymentMethod === method.id ? '#1FD888' : 'rgba(255,255,255,0.75)'}`,
-                      background: paymentMethod === method.id
-                        ? 'linear-gradient(135deg, rgba(31,216,136,0.15), rgba(31,216,136,0.10))'
-                        : 'rgba(255,255,255,0.50)',
-                      color: paymentMethod === method.id ? 'var(--accent)' : 'var(--text2)',
-                      fontSize: 12,
-                      fontWeight: paymentMethod === method.id ? 700 : 600,
-                      cursor: 'pointer',
-                      fontFamily: 'var(--font-body)',
-                      transition: 'all .18s',
-                    }}
-                  >
-                    {method.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <PaymentMethodSelector
+              selected={paymentMethod}
+              onSelect={setPaymentMethod}
+            />
 
             {settleAmount && parseFloat(settleAmount) > 0 && (
               <div style={{
@@ -594,17 +434,3 @@ export default function FriendsScreen({ expenses, onSettle }) {
   )
 }
 
-function FriendRow({ friend: f }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-      <Avatar initials={f.initials} color={f.color} size={44} />
-      <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{f.name}</div>
-        <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 1 }}>
-          {f.balance === 0 ? 'All settled up ✓' : f.balance > 0 ? `Owes you LKR ${f.balance.toFixed(2)}` : `You owe LKR ${Math.abs(f.balance).toFixed(2)}`}
-        </div>
-      </div>
-      <BalanceBadge value={f.balance} />
-    </div>
-  )
-}

@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import { BottomSheet, Input, Button, Avatar, Pill } from './UI.jsx'
 import { CATEGORY_META } from '../data/mockData.js'
+import CurrencyInput from './CurrencyInput.jsx'
+import ExpenseSummaryChip from './ExpenseSummaryChip.jsx'
 
 export default function AddExpenseModal({ open, onClose, friends, groups, onAdd }) {
   const [step, setStep]         = useState(1)
@@ -115,33 +117,14 @@ export default function AddExpenseModal({ open, onClose, friends, groups, onAdd 
             value={title} onChange={e=>setTitle(e.target.value)} autoFocus />
 
           {/* Amount */}
-          <div style={{ marginBottom:16 }}>
-            <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text3)',
-              textTransform:'uppercase', letterSpacing:'1px', marginBottom:6 }}>Amount (LKR)</label>
-            <div style={{ position:'relative' }}>
-              <span style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-52%)',
-                color: amountFocused || amount ? 'var(--accent)' : 'var(--text3)', 
-                fontSize:20, fontWeight:800,
-                transition: 'color .2s' }}>LKR</span>
-              <input type="number" placeholder="0.00" value={amount} onChange={e=>setAmount(e.target.value)}
-                style={{
-                  width:'100%',
-                  background:'rgba(255,255,255,0.60)',
-                  backdropFilter:'blur(12px)',
-                  WebkitBackdropFilter:'blur(12px)',
-                  border:'1.5px solid rgba(255,255,255,0.80)',
-                  borderRadius:'var(--r-md)',
-                  color:'var(--text)', padding:'13px 14px 13px 34px',
-                  fontSize:26, fontWeight:800, outline:'none',
-                  fontFamily:'var(--font-body)',
-                  boxShadow:'0 2px 8px rgba(0,0,0,0.05)',
-                  transition:'border-color .2s, box-shadow .2s',
-                }}
-                onFocus={e=>{setAmountFocused(true);e.target.style.borderColor='#1FD888';e.target.style.boxShadow='0 0 0 3px rgba(31,216,136,.25)'}}
-                onBlur={e=>{setAmountFocused(false);e.target.style.borderColor='rgba(255,255,255,0.80)';e.target.style.boxShadow='0 2px 8px rgba(0,0,0,0.05)'}}
-              />
-            </div>
-          </div>
+          <CurrencyInput
+            label="Amount (LKR)"
+            value={amount}
+            onChange={e=>setAmount(e.target.value)}
+            placeholder="0.00"
+            onFocus={()=>setAmountFocused(true)}
+            onBlur={()=>setAmountFocused(false)}
+          />
 
           {/* Category */}
           <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text3)',
@@ -173,20 +156,7 @@ export default function AddExpenseModal({ open, onClose, friends, groups, onAdd 
       ) : step === 2 ? (
         <>
           {/* Expense summary chip */}
-          <div style={{
-            display:'flex', justifyContent:'space-between', alignItems:'center',
-            padding:'13px 16px', marginBottom:16,
-            background:'rgba(255,255,255,0.55)',
-            backdropFilter:'blur(12px)',
-            WebkitBackdropFilter:'blur(12px)',
-            border:'1.5px solid rgba(255,255,255,0.80)',
-            borderRadius:'var(--r-md)',
-            boxShadow:'0 2px 8px rgba(0,0,0,0.05)',
-          }}>
-            <span style={{ color:'var(--text2)', fontSize:14, fontWeight:600 }}>{title}</span>
-            <span style={{ fontSize:22, fontWeight:800, color:'var(--text)',
-              letterSpacing:'-0.02em' }}>LKR {parseFloat(amount).toFixed(2)}</span>
-          </div>
+          <ExpenseSummaryChip title={title} amount={amount} />
 
           <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text3)',
             textTransform:'uppercase', letterSpacing:'1px', marginBottom:10 }}>Who was involved?</label>
@@ -234,20 +204,7 @@ export default function AddExpenseModal({ open, onClose, friends, groups, onAdd 
       ) : (
         <>
           {/* Expense summary chip */}
-          <div style={{
-            display:'flex', justifyContent:'space-between', alignItems:'center',
-            padding:'13px 16px', marginBottom:16,
-            background:'rgba(255,255,255,0.55)',
-            backdropFilter:'blur(12px)',
-            WebkitBackdropFilter:'blur(12px)',
-            border:'1.5px solid rgba(255,255,255,0.80)',
-            borderRadius:'var(--r-md)',
-            boxShadow:'0 2px 8px rgba(0,0,0,0.05)',
-          }}>
-            <span style={{ color:'var(--text2)', fontSize:14, fontWeight:600 }}>{splitWith.length+1} people</span>
-            <span style={{ fontSize:22, fontWeight:800, color:'var(--text)',
-              letterSpacing:'-0.02em' }}>LKR {parseFloat(amount).toFixed(2)}</span>
-          </div>
+          <ExpenseSummaryChip peopleCount={splitWith.length+1} amount={amount} />
 
           <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text3)',
             textTransform:'uppercase', letterSpacing:'1px', marginBottom:10 }}>Split method</label>

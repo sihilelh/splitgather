@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card, SectionLabel, Avatar, Button } from '../components/UI.jsx'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { CATEGORY_META } from '../data/mockData.js'
+import StatsCard from '../components/StatsCard.jsx'
 
 const MENU = [
   { icon:'📧', label:'Email settings',       section:'Preferences' },
@@ -95,18 +96,7 @@ export default function AccountScreen({ currentUser, friends, expenses }) {
             {label:'Paid',     value:youPaidCount,             color:'var(--positive)'},
             {label:'Total $',  value:`$${totalSpent.toFixed(0)}`, color:'var(--gold)'},
           ].map(s=>(
-            <div key={s.label} style={{
-              background:'rgba(255,255,255,0.52)',
-              backdropFilter:'blur(16px)',
-              WebkitBackdropFilter:'blur(16px)',
-              border:'1.5px solid rgba(255,255,255,0.80)',
-              borderRadius:'var(--r-md)', padding:'15px 10px', textAlign:'center',
-              boxShadow:'0 4px 14px rgba(0,0,0,0.05)',
-            }}>
-              <div style={{ fontSize:22, fontWeight:800, color:s.color,
-                letterSpacing:'-0.03em', lineHeight:1.1, marginBottom:4 }}>{s.value}</div>
-              <div style={{ fontSize:11, color:'var(--text3)', fontWeight:600 }}>{s.label}</div>
-            </div>
+            <StatsCard key={s.label} label={s.label} value={s.value} color={s.color} />
           ))}
         </div>
 
