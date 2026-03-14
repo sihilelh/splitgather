@@ -24,6 +24,7 @@ export const groups = sqliteTable('groups', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   description: text('description'),
+  icon: text('icon'),
   createdBy: integer('created_by').notNull().references(() => users.id),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
@@ -33,6 +34,7 @@ export const groupParticipants = sqliteTable('group_participants', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   groupId: integer('group_id').notNull().references(() => groups.id),
   userId: integer('user_id').notNull().references(() => users.id),
+  owsAmount: real('ows_amount').notNull().default(0.0),
   joinedAt: integer('joined_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 

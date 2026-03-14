@@ -15,6 +15,13 @@
       "when": 1773416738734,
       "tag": "0001_tired_mariko_yashida",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773468201309,
+      "tag": "0002_sticky_vanisher",
+      "breakpoints": true
     }
   ]
 }

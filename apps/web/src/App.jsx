@@ -11,6 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx'
 
 import HomeScreen     from './screens/HomeScreen.jsx'
 import GroupsScreen   from './screens/GroupsScreen.jsx'
+import GroupDetailScreen from './screens/GroupDetailScreen.jsx'
 import FriendsScreen  from './screens/FriendsScreen.jsx'
 import ActivityScreen from './screens/ActivityScreen.jsx'
 import AccountScreen  from './screens/AccountScreen.jsx'
@@ -81,12 +82,15 @@ function AppContent() {
             path="/groups"
             element={
               <ProtectedRoute>
-                <GroupsScreen
-                  groups={groups}
-                  friends={friends}
-                  expenses={expenses}
-                  onAddGroup={addGroup}
-                />
+                <GroupsScreen />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/groups/:groupId"
+            element={
+              <ProtectedRoute>
+                <GroupDetailScreen />
               </ProtectedRoute>
             }
           />

@@ -55,6 +55,7 @@ export const groupParticipantDAO = {
         id: groupParticipants.id,
         groupId: groupParticipants.groupId,
         userId: groupParticipants.userId,
+        owsAmount: groupParticipants.owsAmount,
         joinedAt: groupParticipants.joinedAt,
         user: users,
       })

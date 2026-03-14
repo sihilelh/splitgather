@@ -18,14 +18,14 @@ export default function GroupCard({ group, expenseCount, onClick }) {
           boxShadow: `0 4px 14px ${group.color}20`,
           flexShrink: 0,
         }}>
-          {group.emoji}
+          {group.icon || group.emoji}
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text)', marginBottom: 2 }}>
             {group.name}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-            {group.members ? `${group.members.length + 1} members` : ''}
+            {group.participantCount ? `${group.participantCount} members` : (group.members ? `${group.members.length + 1} members` : '')}
             {expenseCount !== undefined && ` · ${expenseCount} expenses`}
           </div>
         </div>
