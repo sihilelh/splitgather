@@ -1,7 +1,10 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, SectionLabel, Avatar, BalanceBadge, CategoryIcon } from '../components/UI.jsx'
-import { CATEGORY_META } from '../data/mockData.js'
+import { SectionLabel, Avatar } from '../components/UI.jsx'
+import FloatingActionButton from '../components/FloatingActionButton.jsx'
+import BalanceHeroCard from '../components/BalanceHeroCard.jsx'
+import ExpenseCard from '../components/ExpenseCard.jsx'
+import GroupCard from '../components/GroupCard.jsx'
 
 export default function HomeScreen({ currentUser, friends, groups, expenses, totalOwed, totalOwe, netBalance, onAddExpense }) {
   const navigate = useNavigate()
@@ -33,42 +36,14 @@ export default function HomeScreen({ currentUser, friends, groups, expenses, tot
         </div>
 
         {/* Net balance hero card */}
-        <div className="a2" style={{
-          background:'linear-gradient(135deg, rgba(31,216,136,0.30) 0%, rgba(31,216,136,0.22) 50%, rgba(31,216,136,0.15) 100%)',
-          backdropFilter:'blur(24px) saturate(1.8)',
-          WebkitBackdropFilter:'blur(24px) saturate(1.8)',
-          border:'1.5px solid rgba(255,255,255,0.85)',
-          borderRadius:'var(--r-xl)', padding:'22px 22px 20px',
-          boxShadow:'0 12px 40px rgba(31,216,136,0.15), 0 3px 10px rgba(0,0,0,0.06)',
-          position:'relative', overflow:'hidden',
-        }}>
-          {/* decorative blobs */}
-          <div style={{ position:'absolute', top:-30, right:-30, width:120, height:120,
-            background:'radial-gradient(circle,rgba(255,255,255,0.35) 0%,transparent 70%)',
-            pointerEvents:'none' }}/>
-          <div style={{ position:'absolute', bottom:-20, left:20, width:80, height:80,
-            background:'radial-gradient(circle,rgba(31,216,136,0.25) 0%,transparent 70%)',
-            pointerEvents:'none' }}/>
-
-          <div style={{ fontSize:11, color:'var(--text3)', fontWeight:700,
-            textTransform:'uppercase', letterSpacing:'1.2px', marginBottom:5 }}>Net Balance</div>
-          <div style={{ fontSize:46, fontWeight:800, color: netBalance>=0?'var(--accent)':'var(--negative)',
-            letterSpacing:'-0.04em', lineHeight:1, marginBottom:14 }}>
-            {netBalance>=0?'+':''}{Math.abs(netBalance).toFixed(2)}
-            <span style={{ fontSize:20 }}> LKR</span>
-          </div>
-          <div style={{ display:'flex', gap:20 }}>
-            <div>
-              <div style={{ fontSize:11, color:'var(--text3)', fontWeight:600, marginBottom:1 }}>Owed to you</div>
-              <div style={{ fontSize:16, fontWeight:800, color:'var(--positive)' }}>+LKR {totalOwed.toFixed(2)}</div>
-            </div>
-            <div style={{ width:1, background:'rgba(112,112,112,0.15)' }}/>
-            <div>
-              <div style={{ fontSize:11, color:'var(--text3)', fontWeight:600, marginBottom:1 }}>You owe</div>
-              <div style={{ fontSize:16, fontWeight:800, color:'var(--negative)' }}>-LKR {totalOwe.toFixed(2)}</div>
-            </div>
-          </div>
-        </div>
+        <BalanceHeroCard
+          title="Net Balance"
+          balance={netBalance}
+          breakdown={[
+            { label: 'Owed to you', value: totalOwed, positive: true },
+            { label: 'You owe', value: totalOwe, positive: false },
+          ]}
+        />
       </div>
 
       <div style={{ padding:'0 16px' }}>
@@ -150,22 +125,12 @@ export default function HomeScreen({ currentUser, friends, groups, expenses, tot
               fontFamily:'var(--font-body)', fontWeight:700 }}>See all →</button>
           </SectionLabel>
           {groups.slice(0,2).map(g=>(
-            <Card key={g.id} onClick={()=>navigate('/groups')}>
-              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                <div style={{
-                  fontSize:26, width:46, height:46,
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  background:`linear-gradient(135deg, ${g.color}28, ${g.color}12)`,
-                  borderRadius:14, border:`1.5px solid ${g.color}35`,
-                  boxShadow:`0 3px 10px ${g.color}20`, flexShrink:0,
-                }}>{g.emoji}</div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontWeight:800, fontSize:15, color:'var(--text)' }}>{g.name}</div>
-                  <div style={{ fontSize:12, color:'var(--text3)', marginTop:1 }}>{g.members.length+1} members</div>
-                </div>
-                <BalanceBadge value={g.balance}/>
-              </div>
-            </Card>
+            <GroupCard
+              key={g.id}
+              group={g}
+              expenseCount={expenses.filter(e=>e.groupId===g.id).length}
+              onClick={()=>navigate('/groups')}
+            />
           ))}
         </div>
 
@@ -177,48 +142,20 @@ export default function HomeScreen({ currentUser, friends, groups, expenses, tot
               color:'var(--accent)', fontSize:13, cursor:'pointer',
               fontFamily:'var(--font-body)', fontWeight:700 }}>See all →</button>
           </SectionLabel>
-          {recent.map(e=>{
-            const meta = CATEGORY_META[e.category]||CATEGORY_META.other
-            const youPaid = e.paidBy==='u1'
-            const per = (e.amount/(e.splitWith.length+1)).toFixed(2)
-            return (
-              <Card key={e.id}>
-                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                  <CategoryIcon meta={meta} size={42}/>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontWeight:700, fontSize:14, color:'var(--text)' }}>{e.title}</div>
-                    <div style={{ fontSize:12, color:'var(--text3)' }}>{getName(e.paidBy)} · {e.date}</div>
-                  </div>
-                  <div style={{ textAlign:'right' }}>
-                    <div style={{ fontWeight:800, fontSize:15,
-                      color:youPaid?'var(--positive)':'var(--negative)' }}>
-                      {youPaid?`+LKR ${(e.amount-parseFloat(per)).toFixed(2)}`:`-LKR ${per}`}
-                    </div>
-                    <div style={{ fontSize:11, color:'var(--text3)' }}>{youPaid?'lent':'owe'}</div>
-                  </div>
-                </div>
-              </Card>
-            )
-          })}
+          {recent.map(e=>(
+            <ExpenseCard
+              key={e.id}
+              expense={e}
+              friends={friends}
+              currentUserId="u1"
+              showBalance={true}
+            />
+          ))}
         </div>
       </div>
 
       {/* FAB */}
-      <button onClick={onAddExpense} style={{
-        position:'fixed', bottom:20, right:24,
-        width:58, height:58, borderRadius:'50%',
-        background:'linear-gradient(135deg,#1FD888,#4BE5A0)',
-        border:'2px solid rgba(31,216,136,0.70)',
-        color:'#0a0a0a', fontSize:28, cursor:'pointer',
-        boxShadow:'0 8px 28px rgba(31,216,136,0.45)',
-        display:'flex', alignItems:'center', justifyContent:'center',
-        zIndex:150, transition:'transform .15s, box-shadow .2s',
-        fontFamily:'var(--font-body)',
-        animation:'float 4s ease-in-out infinite',
-      }}
-      onMouseDown={e=>{e.currentTarget.style.transform='scale(0.90)';e.currentTarget.style.animation='none'}}
-      onMouseUp={e=>{e.currentTarget.style.transform='scale(1)';e.currentTarget.style.animation='float 4s ease-in-out infinite'}}
-      >＋</button>
+      <FloatingActionButton onClick={onAddExpense} />
     </div>
   )
 }
