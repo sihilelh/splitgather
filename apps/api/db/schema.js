@@ -13,9 +13,9 @@ export const users = sqliteTable('users', {
 // Friends table
 export const friends = sqliteTable('friends', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').notNull().references(() => users.id),
-  friendId: integer('friend_id').notNull().references(() => users.id),
-  status: text('status').notNull().default('pending'), // pending, accepted, blocked
+  userAId: integer('user_a_id').notNull().references(() => users.id),
+  userBId: integer('user_b_id').notNull().references(() => users.id),
+  userAowsB: real('user_a_ows_b').notNull().default(0.0), // Positive = userA owes userB, Negative = userB owes userA
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
@@ -56,8 +56,8 @@ export const recordSplits = sqliteTable('record_splits', {
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
-  friendsAsUser: many(friends, { relationName: 'userFriends' }),
-  friendsAsFriend: many(friends, { relationName: 'friendOf' }),
+  friendsAsUserA: many(friends, { relationName: 'userA' }),
+  friendsAsUserB: many(friends, { relationName: 'userB' }),
   createdGroups: many(groups),
   groupParticipants: many(groupParticipants),
   paidRecords: many(records),
@@ -65,15 +65,15 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const friendsRelations = relations(friends, ({ one }) => ({
-  user: one(users, {
-    fields: [friends.userId],
+  userA: one(users, {
+    fields: [friends.userAId],
     references: [users.id],
-    relationName: 'userFriends',
+    relationName: 'userA',
   }),
-  friend: one(users, {
-    fields: [friends.friendId],
+  userB: one(users, {
+    fields: [friends.userBId],
     references: [users.id],
-    relationName: 'friendOf',
+    relationName: 'userB',
   }),
 }));
 

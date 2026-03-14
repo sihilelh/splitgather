@@ -95,10 +95,8 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <FriendsScreen
-                  friends={friends}
                   expenses={expenses}
                   onSettle={handleSettle}
-                  onAddFriend={addFriend}
                 />
               </ProtectedRoute>
             }
