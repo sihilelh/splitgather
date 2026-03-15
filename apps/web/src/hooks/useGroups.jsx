@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import * as groupService from '../api/groupService.js'
+import * as recordService from '../api/recordService.js'
 import { useAuth } from './useAuth.jsx'
 
 /**
@@ -42,6 +43,11 @@ export function useGroups() {
   const [error, setError] = useState(null)
   const [groupDetails, setGroupDetails] = useState({}) // Cache for individual group details
 
+
+  console.log({
+    groups,
+  });
+
   // Load groups on mount
   useEffect(() => {
     if (user) {
@@ -56,7 +62,15 @@ export function useGroups() {
     setLoading(true)
     setError(null)
     try {
-      const groupsData = await groupService.getUserGroups()
+      const [groupsData, recordsData] = await Promise.all([
+        groupService.getUserGroups(),
+        recordService.getRecords(),
+      ])
+      // Build expense count per group from records user is involved in
+      const countByGroup = {}
+      recordsData.forEach(r => {
+        if (r.groupId) countByGroup[r.groupId] = (countByGroup[r.groupId] || 0) + 1
+      })
       // Transform groups to include UI-friendly fields
       const transformed = groupsData.map(g => ({
         id: g.id,
@@ -65,7 +79,7 @@ export function useGroups() {
         icon: g.icon || '🏠',
         color: getUserColor(g.id),
         participantCount: g.participantCount || 0,
-        balance: 0, // Will be updated when viewing group details
+        expenseCount: countByGroup[g.id] || 0,
         createdAt: g.createdAt,
       }))
       setGroups(transformed)
@@ -97,7 +111,7 @@ export function useGroups() {
         icon: created.icon || '🏠',
         color: getUserColor(created.id),
         participantCount: created.participants?.length || 0,
-        balance: created.userBalance || 0,
+        expenseCount: 0,
         createdAt: created.createdAt,
       }
       setGroups(prev => [transformed, ...prev])

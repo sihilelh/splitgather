@@ -1,5 +1,5 @@
 import React from 'react'
-import { Card, BalanceBadge } from './UI.jsx'
+import { Card } from './UI.jsx'
 
 export default function GroupCard({ group, expenseCount, onClick }) {
   return (
@@ -30,7 +30,6 @@ export default function GroupCard({ group, expenseCount, onClick }) {
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
-          <BalanceBadge value={group.balance} />
           <span style={{ color: 'var(--text3)', fontSize: 16 }}>›</span>
         </div>
       </div>

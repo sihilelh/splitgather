@@ -129,7 +129,7 @@ export default function GroupsScreen() {
             <GroupCard
               key={g.id}
               group={g}
-              expenseCount={0}
+              expenseCount={g.expenseCount || 0}
               onClick={()=>navigate(`/groups/${g.id}`)}
             />
           ))

@@ -19,7 +19,7 @@ export default function GroupDetailScreen() {
   const { getGroupById, addMembers, removeMember, exitGroup, searchFriendsForGroup, formatLKR } = useGroups()
   const { friends } = useFriends()
   const groupIdNum = groupId ? parseInt(groupId, 10) : null
-  const { expenses: recordsExpenses, loading: recordsLoading, updateRecord, refreshRecords } = useRecords(
+  const { records: rawRecords, expenses: recordsExpenses, loading: recordsLoading, updateRecord, refreshRecords } = useRecords(
     groupIdNum ? { groupId: groupIdNum } : {}
   )
   const [group, setGroup] = useState(null)
@@ -131,6 +131,22 @@ export default function GroupDetailScreen() {
   // Process records for display
   const currentUserId = user ? String(user.id) : 'u1'
   const sortedRecords = [...(recordsExpenses || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+
+  // Calculate user's balance from raw group records and their splits
+  const computedUserBalance = (rawRecords || []).reduce((balance, record) => {
+    const userSplit = record.splits?.find(s => s.userId === user?.id)
+    if (!userSplit) return balance
+    if (record.paidBy === user?.id) {
+      // User paid: sum of what other participants owe them
+      const othersOwe = (record.splits || [])
+        .filter(s => s.userId !== user?.id)
+        .reduce((sum, s) => sum + (s.amount || 0), 0)
+      return balance + othersOwe
+    } else {
+      // User is a participant: they owe their split amount
+      return balance - (userSplit.amount || 0)
+    }
+  }, 0)
   
   const groupedRecords = sortedRecords.reduce((acc, e) => {
     if (!e.date) return acc
@@ -189,7 +205,7 @@ export default function GroupDetailScreen() {
         {/* Balance card */}
         <BalanceHeroCard
           title="Your Balance"
-          balance={group.userBalance || 0}
+          balance={computedUserBalance}
           color={group.color}
           style={{ padding:'20px', marginBottom:14 }}
         />
