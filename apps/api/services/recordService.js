@@ -78,9 +78,10 @@ async function updateFriendBalancesForRecord(recordId, reverse = false) {
       friendRecord = await friendDAO.create(payerId, participantId);
     }
 
-    // Update balance: if payer is userA, increase userAowsB (payer is owed)
-    // If payer is userB, decrease userAowsB (payer is owed)
-    await friendDAO.updateBalance(payerId, participantId, amount);
+    // Update balance: participant owes payer, so pass negative amount
+    // If payer is userA: userAowsB decreases (becomes more negative = userB owes userA)
+    // If payer is userB: userAowsB increases (becomes more positive = userA owes userB)
+    await friendDAO.updateBalance(payerId, participantId, -amount);
   }
 }
 

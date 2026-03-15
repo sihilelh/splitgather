@@ -36,6 +36,9 @@ export default function ExpenseCard({ expense, friends, currentUserId = 'u1', on
     return friends?.find(f => String(f.id) === String(id))?.name || '?'
   }
 
+  console.log(expense);
+  
+
   const payer = getName(expense.paidBy)
 
   return (
