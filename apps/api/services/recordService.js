@@ -151,22 +151,27 @@ export async function createRecord(userId, recordData) {
     expenseDate: expenseDate ? new Date(expenseDate) : null,
   });
 
-  // Create splits - include all participants (payer included if they're part of the split)
+  // Create splits - include all participants (payer always included in equal splits)
   const splitRecords = [];
   for (const [userId, splitAmount] of Object.entries(splits)) {
     const userIdNum = parseInt(userId);
-    // Create split for all participants, including payer if they're in participantIds
-    // If payer is not in participantIds, they're paying for others only
-    if (userIdNum === paidBy && participantIds.includes(userIdNum)) {
-      // Payer is part of the split
-      const split = await recordSplitDAO.create({
-        recordId: record.id,
-        userId: userIdNum,
-        amount: splitAmount,
-      });
-      splitRecords.push(split);
-    } else if (userIdNum !== paidBy) {
-      // Participant (not payer)
+    // Create split for all users in the splits object
+    // For equal splits, payer is always included in the splits calculation
+    // For other modes, payer is included if they're in participantIds
+    if (userIdNum === paidBy) {
+      // Payer is part of the split (always for equal, conditional for others)
+      // If splitMode is equal, payer is always included
+      // If splitMode is not equal, only include if explicitly in participantIds
+      if (splitMode === 'equal' || participantIds.includes(userIdNum)) {
+        const split = await recordSplitDAO.create({
+          recordId: record.id,
+          userId: userIdNum,
+          amount: splitAmount,
+        });
+        splitRecords.push(split);
+      }
+    } else {
+      // Participant (not payer) - always create split
       const split = await recordSplitDAO.create({
         recordId: record.id,
         userId: userIdNum,
@@ -246,17 +251,23 @@ export async function updateRecord(userId, recordId, updates) {
     newSplits = [];
     for (const [userId, splitAmount] of Object.entries(splits)) {
       const userIdNum = parseInt(userId);
-      // Create split for all participants, including payer if they're in participantIds
-      if (userIdNum === paidBy && participantIds.includes(userIdNum)) {
-        // Payer is part of the split
-        const split = await recordSplitDAO.create({
-          recordId,
-          userId: userIdNum,
-          amount: splitAmount,
-        });
-        newSplits.push(split);
-      } else if (userIdNum !== paidBy) {
-        // Participant (not payer)
+      // Create split for all users in the splits object
+      // For equal splits, payer is always included in the splits calculation
+      // For other modes, payer is included if they're in participantIds
+      if (userIdNum === paidBy) {
+        // Payer is part of the split (always for equal, conditional for others)
+        // If splitMode is equal, payer is always included
+        // If splitMode is not equal, only include if explicitly in participantIds
+        if (splitMode === 'equal' || participantIds.includes(userIdNum)) {
+          const split = await recordSplitDAO.create({
+            recordId,
+            userId: userIdNum,
+            amount: splitAmount,
+          });
+          newSplits.push(split);
+        }
+      } else {
+        // Participant (not payer) - always create split
         const split = await recordSplitDAO.create({
           recordId,
           userId: userIdNum,

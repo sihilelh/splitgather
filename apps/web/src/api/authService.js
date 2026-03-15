@@ -71,10 +71,11 @@ export async function register(payload) {
 
 export async function getCurrentUser() {
   try {
-    const user = await apiRequest('/auth/me', {
+    const result = await apiRequest('/auth/me', {
       method: 'GET',
     })
-    return user
+    // Extract user from response (API returns { success: true, user: {...} })
+    return result.user || result || null
   } catch (err) {
     if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
       // token invalid/expired

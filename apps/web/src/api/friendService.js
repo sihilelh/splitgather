@@ -8,13 +8,32 @@ export class FriendError extends ApiError {
 }
 
 /**
- * Search users by name or email
+ * Search users by name or email (excludes existing friends - for adding new friends)
  * @param {string} query - Search query
  * @returns {Promise<Array>} Array of users matching the query
  */
 export async function searchUsers(query) {
   try {
     const result = await apiRequest(`/friends/search?q=${encodeURIComponent(query)}`, {
+      method: 'GET',
+    })
+    return result.results || []
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw new FriendError(err.message, err.status, err.data)
+    }
+    throw err
+  }
+}
+
+/**
+ * Search existing friends by name or email (for group creation)
+ * @param {string} query - Search query
+ * @returns {Promise<Array>} Array of friends matching the query
+ */
+export async function searchFriends(query) {
+  try {
+    const result = await apiRequest(`/friends/search-friends?q=${encodeURIComponent(query)}`, {
       method: 'GET',
     })
     return result.results || []

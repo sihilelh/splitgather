@@ -1,7 +1,7 @@
 import * as friendService from '../services/friendService.js';
 
 /**
- * Search users by name or email
+ * Search users by name or email (excludes existing friends - for adding new friends)
  * GET /api/friends/search?q=query
  */
 export async function searchUsers(req, res) {
@@ -28,6 +28,38 @@ export async function searchUsers(req, res) {
     res.status(statusCode).json({
       success: false,
       message: error.message || 'Failed to search users',
+    });
+  }
+}
+
+/**
+ * Search existing friends by name or email (for group creation)
+ * GET /api/friends/search-friends?q=query
+ */
+export async function searchFriends(req, res) {
+  try {
+    const { q: query } = req.query;
+    const { id: userId } = req.user;
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query is required',
+      });
+    }
+
+    const results = await friendService.searchFriends(query, userId);
+
+    res.status(200).json({
+      success: true,
+      results,
+      count: results.length,
+    });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({
+      success: false,
+      message: error.message || 'Failed to search friends',
     });
   }
 }

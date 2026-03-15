@@ -29,7 +29,7 @@ function getUserColor(id) {
 }
 
 export function useStore() {
-  const { user } = useAuth()
+  const { user, initialising } = useAuth()
   const { friends: friendsData, refreshFriends } = useFriends()
   const { groups: groupsData, refreshGroups } = useGroups()
   const { expenses, createRecord, refreshRecords } = useRecords()
@@ -62,8 +62,9 @@ export function useStore() {
   }, [groupsData])
 
   // Transform current user to include UI-friendly fields
+  // Force recomputation when user.id changes (not just user object reference)
   const currentUser = useMemo(() => {
-    if (!user) return null
+    if (!user || !user.id) return null
     return {
       id: String(user.id),
       name: user.name || '',
@@ -71,7 +72,7 @@ export function useStore() {
       initials: getInitials(user.name || ''),
       color: getUserColor(user.id),
     }
-  }, [user])
+  }, [user?.id, user?.name, user?.email]) // Depend on specific user properties
 
   const addExpense = useCallback(async (exp) => {
     try {
@@ -188,5 +189,6 @@ export function useStore() {
     totalOwed,
     totalOwe,
     netBalance,
+    loading: initialising, // Expose loading state
   }
 }

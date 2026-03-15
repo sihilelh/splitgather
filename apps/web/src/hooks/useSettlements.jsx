@@ -1,10 +1,15 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import * as settlementService from '../api/settlementService.js'
 
 export function useSettlements(filters = {}) {
   const [settlements, setSettlements] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  // Create a stable key from filters to prevent infinite loops when filters object is recreated
+  // JSON.stringify creates a stable string that only changes when filter values actually change
+  // For empty objects {}, JSON.stringify always returns "{}", so it's stable
+  const filtersKey = JSON.stringify(filters)
 
   const fetchSettlements = useCallback(async () => {
     try {
@@ -18,7 +23,7 @@ export function useSettlements(filters = {}) {
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [filtersKey])
 
   useEffect(() => {
     fetchSettlements()

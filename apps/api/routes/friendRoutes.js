@@ -7,9 +7,15 @@ const friendRouter = Router();
 
 /**
  * GET /api/friends/search?q=query
- * Search users by name or email
+ * Search users by name or email (excludes existing friends - for adding new friends)
  */
 friendRouter.get('/search', authenticateToken, friendController.searchUsers);
+
+/**
+ * GET /api/friends/search-friends?q=query
+ * Search existing friends by name or email (for group creation)
+ */
+friendRouter.get('/search-friends', authenticateToken, friendController.searchFriends);
 
 /**
  * GET /api/friends

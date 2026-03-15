@@ -88,3 +88,12 @@ export async function loginUser(credentials) {
     token,
   };
 }
+
+/**
+ * Get user by ID
+ * @param {number} id - User ID
+ * @returns {Promise<Object|null>} User object or null if not found
+ */
+export async function getUserById(id) {
+  return await userDAO.findById(id);
+}

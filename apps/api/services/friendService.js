@@ -16,7 +16,7 @@ function getBalanceForUser(friendRecord, currentUserId) {
 }
 
 /**
- * Search users by name or email
+ * Search users by name or email (excludes existing friends - for adding new friends)
  * @param {string} query - Search query
  * @param {number} userId - Current user ID
  * @returns {Promise<Array>} Array of users matching the query
@@ -27,6 +27,21 @@ export async function searchUsers(query, userId) {
   }
 
   const results = await friendDAO.searchUsers(query.trim(), userId, 10);
+  return results;
+}
+
+/**
+ * Search existing friends by name or email (for group creation)
+ * @param {string} query - Search query
+ * @param {number} userId - Current user ID
+ * @returns {Promise<Array>} Array of friends matching the query
+ */
+export async function searchFriends(query, userId) {
+  if (!query || query.trim().length === 0) {
+    return [];
+  }
+
+  const results = await friendDAO.searchFriends(query.trim(), userId, 10);
   return results;
 }
 

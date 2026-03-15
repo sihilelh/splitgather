@@ -29,7 +29,7 @@ export function useFriends() {
   }, [])
 
   /**
-   * Search users by name or email
+   * Search users by name or email (excludes existing friends - for adding new friends)
    * @param {string} query - Search query
    * @returns {Promise<Array>} Array of users matching the query
    */
@@ -42,6 +42,24 @@ export function useFriends() {
       return results
     } catch (err) {
       console.error('Failed to search users:', err)
+      throw err
+    }
+  }, [])
+
+  /**
+   * Search existing friends by name or email (for group creation)
+   * @param {string} query - Search query
+   * @returns {Promise<Array>} Array of friends matching the query
+   */
+  const searchFriends = useCallback(async (query) => {
+    if (!query || query.trim().length === 0) {
+      return []
+    }
+    try {
+      const results = await friendService.searchFriends(query.trim())
+      return results
+    } catch (err) {
+      console.error('Failed to search friends:', err)
       throw err
     }
   }, [])
@@ -88,6 +106,7 @@ export function useFriends() {
     loading,
     error,
     searchUsers,
+    searchFriends,
     addFriend,
     refreshFriends,
     getFriendsByCategory,

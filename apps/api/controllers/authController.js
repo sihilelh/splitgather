@@ -63,9 +63,19 @@ export async function login(req, res) {
 export async function me(req, res) {
     try {
         const { user } = req;
+        // Fetch full user from database to include name and other fields
+        const fullUser = await authService.getUserById(user.id);
+        if (!fullUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
+        // Remove password hash before returning
+        const { passwordHash: _, ...userWithoutPassword } = fullUser;
         res.status(200).json({
             success: true,
-            user,
+            user: userWithoutPassword,
         });
     }
     catch (error) {

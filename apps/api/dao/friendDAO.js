@@ -34,12 +34,13 @@ export const friendDAO = {
       .select({ friendId: friends.userAId })
       .from(friends)
       .where(eq(friends.userBId, currentUserId));
-    
+
+    // Combine friend IDs from both directions
     const friendIds = [
       ...userFriendsAsA.map(f => f.friendId),
       ...userFriendsAsB.map(f => f.friendId),
     ];
-    
+
     // Build query conditions
     const conditions = [
       ne(users.id, currentUserId),
@@ -49,7 +50,7 @@ export const friendDAO = {
       )
     ];
     
-    // Add friend exclusion if there are any friends
+    // Exclude existing friends (only add condition if there are friends to exclude)
     if (friendIds.length > 0) {
       conditions.push(notInArray(users.id, friendIds));
     }
@@ -68,6 +69,70 @@ export const friendDAO = {
       .limit(limit);
     
     return results;
+  },
+
+  /**
+   * Search existing friends by name or email (for group creation)
+   * @param {string} query - Search query (name or email)
+   * @param {number} currentUserId - Current user ID
+   * @param {number} limit - Maximum number of results (default 10)
+   * @returns {Promise<Array>} Array of friends matching the query
+   */
+  async searchFriends(query, currentUserId, limit = 10) {
+    const searchPattern = `%${query}%`;
+    
+    // Get friends where user is userA (friend is userB)
+    const userFriendsAsA = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        createdAt: users.createdAt,
+      })
+      .from(friends)
+      .innerJoin(users, eq(friends.userBId, users.id))
+      .where(
+        and(
+          eq(friends.userAId, currentUserId),
+          or(
+            like(users.name, searchPattern),
+            like(users.email, searchPattern)
+          )
+        )
+      );
+    
+    // Get friends where user is userB (friend is userA)
+    const userFriendsAsB = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        createdAt: users.createdAt,
+      })
+      .from(friends)
+      .innerJoin(users, eq(friends.userAId, users.id))
+      .where(
+        and(
+          eq(friends.userBId, currentUserId),
+          or(
+            like(users.name, searchPattern),
+            like(users.email, searchPattern)
+          )
+        )
+      );
+
+    // Combine and deduplicate (in case of any edge cases)
+    const allFriends = [...userFriendsAsA, ...userFriendsAsB];
+    const uniqueFriends = Array.from(
+      new Map(allFriends.map(f => [f.id, f])).values()
+    );
+
+    // Sort and limit
+    const sorted = uniqueFriends
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, limit);
+
+    return sorted;
   },
 
   /**

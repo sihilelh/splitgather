@@ -4,6 +4,7 @@ import { Card, SectionLabel, Button, EmptyState, BottomSheet, Input } from '../c
 import GroupCard from '../components/GroupCard.jsx'
 import { useGroups } from '../hooks/useGroups.jsx'
 import { useFriends } from '../hooks/useFriends.jsx'
+import { getInitials, getColorForUser } from '../utils/helpers.js'
 import LoadingState from '../components/LoadingState.jsx'
 import ErrorState from '../components/ErrorState.jsx'
 
@@ -12,7 +13,7 @@ const EMOJIS = ['🏠','📚','☕','🎮','🏋️','🎵','🛒','✈️','�
 export default function GroupsScreen() {
   const navigate = useNavigate()
   const { groups, loading, error, createGroup, refreshGroups } = useGroups()
-  const { friends } = useFriends()
+  const { friends, searchFriends: searchFriendsAPI } = useFriends()
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
   const [newEmoji, setNewEmoji] = useState('🏠')
@@ -22,24 +23,36 @@ export default function GroupsScreen() {
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
 
-  // Debounced friend search
+  // Debounced friend search - makes API call to search existing friends
   useEffect(() => {
     if (step === 2 && friendSearchQuery.trim()) {
       setSearching(true)
-      const timer = setTimeout(() => {
-        // Filter friends by name
-        const query = friendSearchQuery.toLowerCase()
-        const filtered = friends
-          .filter(f => f.name.toLowerCase().includes(query))
-          .slice(0, 10)
-        setSearchResults(filtered)
-        setSearching(false)
+      const timer = setTimeout(async () => {
+        try {
+          const results = await searchFriendsAPI(friendSearchQuery)
+          // Transform results to include UI-friendly fields (initials, color)
+          const transformed = results.map(friend => ({
+            id: friend.id,
+            name: friend.name,
+            email: friend.email,
+            initials: getInitials(friend.name),
+            color: getColorForUser(friend.id),
+          }))
+          // Sort alphabetically by name
+          const sorted = transformed.sort((a, b) => a.name.localeCompare(b.name))
+          setSearchResults(sorted)
+        } catch (err) {
+          console.error('Search failed:', err)
+          setSearchResults([])
+        } finally {
+          setSearching(false)
+        }
       }, 300)
       return () => clearTimeout(timer)
     } else {
       setSearchResults([])
     }
-  }, [friendSearchQuery, step, friends])
+  }, [friendSearchQuery, step, searchFriendsAPI])
 
   const handleNameKeyPress = (e) => {
     if (e.key === 'Enter' && newName.trim()) {
