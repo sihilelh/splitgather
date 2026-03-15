@@ -1,13 +1,19 @@
 import React from 'react'
+import { useTheme } from '../hooks/useTheme.jsx'
 
 export default function StatsCard({ label, value, color, style = {} }) {
+  const { theme } = useTheme()
   return (
     <div
       style={{
-        background: 'rgba(255,255,255,0.52)',
+        background: theme === 'light' 
+          ? 'rgba(255,255,255,0.52)'
+          : 'rgba(16,16,20,0.60)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: '1.5px solid rgba(255,255,255,0.80)',
+        border: theme === 'light'
+          ? '1.5px solid rgba(255,255,255,0.80)'
+          : '1.5px solid rgba(31,216,136,0.25)',
         borderRadius: 'var(--r-md)',
         padding: '15px 10px',
         textAlign: 'center',

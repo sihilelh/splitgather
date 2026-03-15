@@ -54,15 +54,18 @@ export default function BottomNav({ currentPath }) {
             onMouseUp={e=>e.currentTarget.style.transform='scale(1)'}
             onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
             >
-              {isActive && (
-                <div style={{
-                  position:'absolute', top:0, left:'50%', transform:'translateX(-50%)',
-                  width:28, height:3,
-                  background:'linear-gradient(90deg,#1FD888,#4BE5A0)',
-                  borderRadius:'0 0 4px 4px',
-                  boxShadow:'0 2px 8px rgba(31,216,136,0.55)',
-                }}/>
-              )}
+              <div style={{
+                position:'absolute', top:0, left:'50%', transform:'translateX(-50%)',
+                width:28, height:3,
+                background: isActive 
+                  ? 'linear-gradient(90deg,#1FD888,#4BE5A0)' 
+                  : 'transparent',
+                borderRadius:'0 0 4px 4px',
+                boxShadow: isActive
+                  ? '0 2px 8px rgba(31,216,136,0.55)'
+                  : 'none',
+                transition:'background .2s, box-shadow .2s',
+              }}/>
               <div style={{
                 width:34, height:34, borderRadius:11,
                 display:'flex', alignItems:'center', justifyContent:'center',

@@ -27,7 +27,7 @@ export default function HomeScreen({ currentUser, friends, groups, expenses: exp
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 90, position: 'relative', zIndex: 1 }}>
+    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 120, position: 'relative', zIndex: 1 }}>
       {/* Header */}
       <div className="a1" style={{ padding: '52px 20px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>

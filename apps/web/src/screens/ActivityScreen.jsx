@@ -57,7 +57,7 @@ export default function ActivityScreen({ expenses: expensesProp, friends: friend
   },{})
 
   return (
-    <div style={{ flex:1, overflowY:'auto', paddingBottom:90, position:'relative', zIndex:1 }}>
+    <div style={{ flex:1, overflowY:'auto', paddingBottom:120, position:'relative', zIndex:1 }}>
       <div className="a1" style={{ padding:'52px 20px 0' }}>
         <h1 style={{ fontSize:28, fontWeight:800, color:'var(--text)', letterSpacing:'-0.03em', marginBottom:14 }}>
           Activity

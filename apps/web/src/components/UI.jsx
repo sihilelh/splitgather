@@ -211,8 +211,6 @@ export function BottomSheet({ open, onClose, children, title }) {
           transition:'background .3s, box-shadow .3s, border-color .3s',
         }}
       >
-        <div style={{ width:38, height:4, background:'var(--text3)',
-          opacity:0.25, borderRadius:4, margin:'0 auto 20px' }} />
         {title && <h2 style={{ fontSize:21, fontWeight:800, marginBottom:20,
           color:'var(--text)', letterSpacing:'-0.02em' }}>{title}</h2>}
         {children}
