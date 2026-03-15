@@ -4,18 +4,27 @@ import { CATEGORY_META } from '../constants/categories.js'
 import CurrencyInput from './CurrencyInput.jsx'
 import ExpenseSummaryChip from './ExpenseSummaryChip.jsx'
 
-export default function AddExpenseModal({ open, onClose, friends, groups, currentUserId, onAdd }) {
+export default function AddExpenseModal({ open, onClose, friends, groups, currentUser, onAdd }) {
+  // Derive currentUserId from the full currentUser object
+  const currentUserId = currentUser?.id
+
   const [step, setStep]         = useState(1)
   const [title, setTitle]       = useState('')
   const [amount, setAmount]     = useState('')
   const [category, setCategory] = useState('food')
   const [groupId, setGroupId]   = useState(null)
-  const [expenseDate, setExpenseDate] = useState('')
+  // Default date to today
+  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().slice(0, 10))
   const [splitWith, setSplitWith] = useState([])
   const [splitMode, setSplitMode] = useState('equal') // 'equal', 'percentage', 'custom'
-  const [customSplits, setCustomSplits] = useState({}) // { friendId: amount }
-  const [percentageSplits, setPercentageSplits] = useState({}) // { friendId: percentage }
+  const [customSplits, setCustomSplits] = useState({}) // { userId: amount }
+  const [percentageSplits, setPercentageSplits] = useState({}) // { userId: percentage }
   const [amountFocused, setAmountFocused] = useState(false)
+  // null means "current user" is the payer
+  const [paidBy, setPaidBy] = useState(null)
+
+  // The effective payer ID — falls back to current user if none selected
+  const effectivePaidBy = paidBy || currentUserId
 
   const reset = () => {
     setStep(1)
@@ -23,45 +32,55 @@ export default function AddExpenseModal({ open, onClose, friends, groups, curren
     setAmount('')
     setCategory('food')
     setGroupId(null)
-    setExpenseDate('')
+    setExpenseDate(new Date().toISOString().slice(0, 10))
     setSplitWith([])
     setSplitMode('equal')
     setCustomSplits({})
     setPercentageSplits({})
     setAmountFocused(false)
+    setPaidBy(null)
   }
   
   const handleClose = () => { reset(); onClose() }
-  const toggleFriend = id => setSplitWith(p => p.includes(id)?p.filter(x=>x!==id):[...p,id])
+
+  const toggleFriend = id => {
+    setSplitWith(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+      // If the deselected friend was the payer, reset paidBy
+      if (!next.includes(id) && paidBy === id) {
+        setPaidBy(null)
+      }
+      return next
+    })
+  }
   
-  const perPerson = amount && splitWith.length>0
-    ? (parseFloat(amount)/(splitWith.length+1)).toFixed(2) : null
-  
+  const perPerson = amount && splitWith.length > 0
+    ? (parseFloat(amount) / (splitWith.length + 1)).toFixed(2) : null
+
+  // All participants: current user + selected friends
+  const allParticipants = useMemo(() => {
+    const me = currentUser ? [{ id: currentUserId, name: currentUser.name || 'You', initials: currentUser.initials, color: currentUser.color }] : []
+    const selectedFriends = friends.filter(f => splitWith.includes(f.id))
+    return [...me, ...selectedFriends]
+  }, [currentUser, currentUserId, friends, splitWith])
+
   // Calculate total for custom split
   const customTotal = useMemo(() => {
-    const userId = currentUserId || 'u1'
-    const myAmount = customSplits[userId] || 0
-    const othersTotal = Object.values(customSplits).reduce((s, v) => s + parseFloat(v || 0), 0) - myAmount
-    return myAmount + othersTotal
-  }, [customSplits, currentUserId])
+    return Object.values(customSplits).reduce((s, v) => s + parseFloat(v || 0), 0)
+  }, [customSplits])
   
   // Calculate percentage splits validation
   const percentageTotal = useMemo(() => {
-    const userId = currentUserId || 'u1'
-    const myPct = percentageSplits[userId] || 0
-    const othersTotal = Object.values(percentageSplits).reduce((s, v) => s + parseFloat(v || 0), 0) - myPct
-    return myPct + othersTotal
-  }, [percentageSplits, currentUserId])
+    return Object.values(percentageSplits).reduce((s, v) => s + parseFloat(v || 0), 0)
+  }, [percentageSplits])
   
   const canNext = title.trim() && parseFloat(amount) > 0
   
   const isSplitValid = () => {
     if (splitWith.length === 0) return false
     if (splitMode === 'custom') {
-      // Check if total matches amount (within 0.01 rounding tolerance)
       return Math.abs(customTotal - parseFloat(amount)) < 0.01
     } else if (splitMode === 'percentage') {
-      // Check if percentages sum to 100
       return Math.abs(percentageTotal - 100) < 0.1
     }
     return true
@@ -70,39 +89,49 @@ export default function AddExpenseModal({ open, onClose, friends, groups, curren
   const generateSplitData = () => {
     const numPeople = splitWith.length + 1
     const splits = {}
-    const userId = currentUserId || 'u1'
-    
+    const payer = effectivePaidBy
+
+    // All people involved: current user + selected friends
+    const allInvolved = [...splitWith, currentUserId]
+    // Participants = all involved except the payer
+    const splitWithForAPI = allInvolved.filter(id => id !== payer)
+
     if (splitMode === 'equal') {
       const perPersonAmount = parseFloat(amount) / numPeople
-      splits[userId] = perPersonAmount
-      splitWith.forEach(id => {
+      allInvolved.forEach(id => {
         splits[id] = perPersonAmount
       })
     } else if (splitMode === 'percentage') {
-      splits[userId] = (parseFloat(amount) * (percentageSplits[userId] || 0)) / 100
-      splitWith.forEach(id => {
+      allInvolved.forEach(id => {
         splits[id] = (parseFloat(amount) * (percentageSplits[id] || 0)) / 100
       })
     } else if (splitMode === 'custom') {
-      Object.entries(customSplits).forEach(([id, amt]) => {
-        splits[id] = parseFloat(amt || 0)
+      allInvolved.forEach(id => {
+        splits[id] = parseFloat(customSplits[id] || 0)
       })
     }
-    
-    // Return in expense format (UI format) - useStore will transform to API format
+
     return {
       title: title.trim(),
-      description: title.trim(), // Also include for API
+      description: title.trim(),
       amount: parseFloat(amount),
       category: category || 'other',
       groupId: groupId || null,
       date: expenseDate || new Date().toISOString().slice(0, 10),
-      expenseDate: expenseDate || null, // For API
-      paidBy: userId, // Keep as string for UI
-      splitWith: splitWith, // Array of friend IDs (strings)
+      expenseDate: expenseDate || null,
+      paidBy: payer,
+      splitWith: splitWithForAPI,
       splitMode,
-      splitData: splits, // For API transformation
+      splitData: splits,
     }
+  }
+
+  // Input style shared for split inputs
+  const splitInputStyle = {
+    flex: 1, height: 36, padding: '0 8px', borderRadius: 8,
+    border: '1.5px solid rgba(255,255,255,0.75)',
+    background: 'rgba(255,255,255,0.50)', fontSize: 12, fontFamily: 'var(--font-body)',
+    color: 'var(--text)',
   }
 
   return (
@@ -121,12 +150,12 @@ export default function AddExpenseModal({ open, onClose, friends, groups, curren
         ))}
       </div>
 
-      {step===1 ? (
+      {/* ── STEP 1 ── */}
+      {step === 1 ? (
         <>
           <Input label="What was it for?" placeholder="e.g. Pizza Night"
             value={title} onChange={e=>setTitle(e.target.value)} autoFocus />
 
-          {/* Amount */}
           <CurrencyInput
             label="Amount (LKR)"
             value={amount}
@@ -139,13 +168,9 @@ export default function AddExpenseModal({ open, onClose, friends, groups, curren
           {/* Date */}
           <div style={{ marginBottom: 16 }}>
             <label style={{
-              display: 'block',
-              fontSize: 11,
-              fontWeight: 700,
-              color: 'var(--text3)',
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              marginBottom: 8,
+              display: 'block', fontSize: 11, fontWeight: 700,
+              color: 'var(--text3)', textTransform: 'uppercase',
+              letterSpacing: '1px', marginBottom: 8,
             }}>
               Date of Expense
             </label>
@@ -166,6 +191,7 @@ export default function AddExpenseModal({ open, onClose, friends, groups, curren
                 color: 'var(--text)',
                 fontFamily: 'var(--font-body)',
                 outline: 'none',
+                boxSizing: 'border-box',
               }}
             />
           </div>
@@ -197,9 +223,10 @@ export default function AddExpenseModal({ open, onClose, friends, groups, curren
             Next → Add People
           </Button>
         </>
+
+      /* ── STEP 2 ── */
       ) : step === 2 ? (
         <>
-          {/* Expense summary chip */}
           <ExpenseSummaryChip title={title} amount={amount} />
 
           <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text3)',
@@ -245,41 +272,77 @@ export default function AddExpenseModal({ open, onClose, friends, groups, curren
             </Button>
           </div>
         </>
+
+      /* ── STEP 3 ── */
       ) : (
         <>
-          {/* Expense summary chip */}
           <ExpenseSummaryChip peopleCount={splitWith.length+1} amount={amount} />
 
-          <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text3)',
-            textTransform:'uppercase', letterSpacing:'1px', marginBottom:10 }}>Split method</label>
-
-          {/* Split mode selector */}
-          <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:16 }}>
-            {[
-              { id: 'equal', label: 'Equal Split', desc: 'Divide equally among all' },
-              { id: 'percentage', label: 'By Percentage', desc: 'Assign percentages' },
-              { id: 'custom', label: 'Custom Amount', desc: 'Enter amounts manually' }
-            ].map(mode => (
-              <div key={mode.id} onClick={()=>setSplitMode(mode.id)}
-                style={{
-                  padding:'12px 14px', borderRadius:'var(--r-md)',
-                  border:`1.5px solid ${splitMode===mode.id ? '#1FD888' : 'rgba(255,255,255,0.75)'}`,
-                  background: splitMode===mode.id
-                    ? 'linear-gradient(135deg, rgba(31,216,136,0.15), rgba(31,216,136,0.10))'
-                    : 'rgba(255,255,255,0.50)',
-                  cursor:'pointer', transition:'all .18s',
-                  boxShadow: splitMode===mode.id ? '0 4px 16px rgba(31,216,136,0.25)' : '0 2px 6px rgba(0,0,0,0.04)',
-                }}
-              >
-                <div style={{ fontWeight:700, fontSize:14, color:'var(--text)', marginBottom:2 }}>
-                  {splitMode===mode.id?'✓':''} {mode.label}
-                </div>
-                <div style={{ fontSize:12, color:'var(--text3)' }}>{mode.desc}</div>
-              </div>
-            ))}
+          {/* ── Paid by selector ── */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text3)',
+              textTransform:'uppercase', letterSpacing:'1px', marginBottom:10 }}>
+              Paid by
+            </label>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {allParticipants.map(p => {
+                const isMe = p.id === currentUserId
+                const label = isMe ? 'You' : p.name.split(' ')[0]
+                const sel = effectivePaidBy === p.id
+                return (
+                  <div key={p.id} onClick={() => setPaidBy(p.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '7px 12px', borderRadius: 40,
+                      border: `1.5px solid ${sel ? (p.color || '#1FD888') + 'CC' : 'rgba(255,255,255,0.75)'}`,
+                      background: sel
+                        ? `linear-gradient(135deg, ${p.color || '#1FD888'}28, ${p.color || '#1FD888'}10)`
+                        : 'rgba(255,255,255,0.50)',
+                      cursor: 'pointer', transition: 'all .18s',
+                      fontWeight: 700, fontSize: 13, color: sel ? (p.color || '#1FD888') : 'var(--text)',
+                      boxShadow: sel ? `0 3px 10px ${(p.color||'#1FD888')}30` : 'none',
+                    }}
+                  >
+                    <Avatar initials={p.initials || label[0]} color={p.color || '#1FD888'} size={22} />
+                    {label}
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
-          {/* Split mode content */}
+          {/* ── Split mode selector ── */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text3)',
+              textTransform:'uppercase', letterSpacing:'1px', marginBottom:10 }}>
+              and split
+            </label>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {[
+                { id: 'equal',      label: 'Equally' },
+                { id: 'percentage', label: 'By Percentage' },
+                { id: 'custom',     label: 'Custom Amount' },
+              ].map(mode => (
+                <div key={mode.id} onClick={() => setSplitMode(mode.id)}
+                  style={{
+                    padding: '7px 14px', borderRadius: 40,
+                    border: `1.5px solid ${splitMode===mode.id ? '#1FD888CC' : 'rgba(255,255,255,0.75)'}`,
+                    background: splitMode===mode.id
+                      ? 'linear-gradient(135deg, rgba(31,216,136,0.22), rgba(31,216,136,0.10))'
+                      : 'rgba(255,255,255,0.50)',
+                    cursor: 'pointer', transition: 'all .18s',
+                    fontWeight: 700, fontSize: 13,
+                    color: splitMode===mode.id ? '#1FD888' : 'var(--text)',
+                    boxShadow: splitMode===mode.id ? '0 3px 10px rgba(31,216,136,0.25)' : 'none',
+                  }}
+                >
+                  {mode.label}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Split mode detail ── */}
           {splitMode === 'equal' ? (
             <div style={{
               background:'linear-gradient(135deg, rgba(31,216,136,0.15), rgba(31,216,136,0.10))',
@@ -295,43 +358,30 @@ export default function AddExpenseModal({ open, onClose, friends, groups, curren
                 LKR {perPerson}
               </div>
             </div>
+
           ) : splitMode === 'percentage' ? (
             <div style={{ marginBottom:16 }}>
               <div style={{ fontSize:11, fontWeight:700, color:'var(--text3)', marginBottom:10 }}>
-                Assign percentages (total: {percentageTotal.toFixed(1)}%)
+                Assign percentages — total: {percentageTotal.toFixed(1)}%
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                <div key={currentUserId || 'u1'} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ fontSize:12, fontWeight:700, color:'var(--text)', minWidth:40 }}>You</span>
-                  <input type="number" min="0" max="100" placeholder="%" 
-                    value={percentageSplits[currentUserId || 'u1'] || ''} 
-                    onChange={e=>setPercentageSplits({...percentageSplits, [currentUserId || 'u1']: parseFloat(e.target.value) || 0})}
-                    style={{
-                      flex:1, height:36, padding:'0 8px', borderRadius:8,
-                      border:'1.5px solid rgba(255,255,255,0.75)',
-                      background:'rgba(255,255,255,0.50)', fontSize:12, fontFamily:'var(--font-body)',
-                    }}
-                  />
-                      <span style={{ fontSize:12, fontWeight:600, color:'var(--text2)', minWidth:50, textAlign:'right' }}>
-                        LKR {((parseFloat(percentageSplits[currentUserId || 'u1'] || 0) / 100) * parseFloat(amount)).toFixed(2)}
-                      </span>
-                </div>
-                {splitWith.map(fid => {
-                  const f = friends.find(x=>x.id===fid)
+                {allParticipants.map(p => {
+                  const isMe = p.id === currentUserId
+                  const label = isMe ? 'You' : p.name.split(' ')[0]
                   return (
-                    <div key={fid} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                      <span style={{ fontSize:12, fontWeight:700, color:'var(--text)', minWidth:40 }}>{f.name.split(' ')[0]}</span>
-                      <input type="number" min="0" max="100" placeholder="%" 
-                        value={percentageSplits[fid] || ''} 
-                        onChange={e=>setPercentageSplits({...percentageSplits, [fid]: parseFloat(e.target.value) || 0})}
-                        style={{
-                          flex:1, height:36, padding:'0 8px', borderRadius:8,
-                          border:'1.5px solid rgba(255,255,255,0.75)',
-                          background:'rgba(255,255,255,0.50)', fontSize:12, fontFamily:'var(--font-body)',
-                        }}
+                    <div key={p.id} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <span style={{ fontSize:12, fontWeight:700, color:'var(--text)', minWidth:46, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {label}
+                      </span>
+                      <input
+                        type="number" min="0" max="100" step="any" placeholder="0"
+                        value={percentageSplits[p.id] ?? ''}
+                        onChange={e => setPercentageSplits({ ...percentageSplits, [p.id]: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                        style={splitInputStyle}
                       />
-                      <span style={{ fontSize:12, fontWeight:600, color:'var(--text2)', minWidth:50, textAlign:'right' }}>
-                        LKR {((parseFloat(percentageSplits[fid] || 0) / 100) * parseFloat(amount)).toFixed(2)}
+                      <span style={{ fontSize:11, color:'var(--text3)', minWidth:16 }}>%</span>
+                      <span style={{ fontSize:12, fontWeight:600, color:'var(--text2)', minWidth:60, textAlign:'right' }}>
+                        LKR {((parseFloat(percentageSplits[p.id] || 0) / 100) * parseFloat(amount)).toFixed(2)}
                       </span>
                     </div>
                   )
@@ -343,38 +393,26 @@ export default function AddExpenseModal({ open, onClose, friends, groups, curren
                 </div>
               )}
             </div>
+
           ) : (
             <div style={{ marginBottom:16 }}>
               <div style={{ fontSize:11, fontWeight:700, color:'var(--text3)', marginBottom:10 }}>
-                Enter amounts (total: LKR {customTotal.toFixed(2)})
+                Enter amounts — total: LKR {customTotal.toFixed(2)} / {parseFloat(amount).toFixed(2)}
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                <div key={currentUserId || 'u1'} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ fontSize:12, fontWeight:700, color:'var(--text)', minWidth:40 }}>You</span>
-                  <input type="number" min="0" placeholder="0.00" 
-                    value={customSplits[currentUserId || 'u1'] || ''} 
-                    onChange={e=>setCustomSplits({...customSplits, [currentUserId || 'u1']: e.target.value})}
-                    style={{
-                      flex:1, height:36, padding:'0 8px', borderRadius:8,
-                      border:'1.5px solid rgba(255,255,255,0.75)',
-                      background:'rgba(255,255,255,0.50)', fontSize:12, fontFamily:'var(--font-body)',
-                    }}
-                  />
-                  <span style={{ fontSize:12, fontWeight:600, color:'var(--text2)', minWidth:30 }}>LKR</span>
-                </div>
-                {splitWith.map(fid => {
-                  const f = friends.find(x=>x.id===fid)
+                {allParticipants.map(p => {
+                  const isMe = p.id === currentUserId
+                  const label = isMe ? 'You' : p.name.split(' ')[0]
                   return (
-                    <div key={fid} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                      <span style={{ fontSize:12, fontWeight:700, color:'var(--text)', minWidth:40 }}>{f.name.split(' ')[0]}</span>
-                      <input type="number" min="0" placeholder="0.00" 
-                        value={customSplits[fid] || ''} 
-                        onChange={e=>setCustomSplits({...customSplits, [fid]: e.target.value})}
-                        style={{
-                          flex:1, height:36, padding:'0 8px', borderRadius:8,
-                          border:'1.5px solid rgba(255,255,255,0.75)',
-                          background:'rgba(255,255,255,0.50)', fontSize:12, fontFamily:'var(--font-body)',
-                        }}
+                    <div key={p.id} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <span style={{ fontSize:12, fontWeight:700, color:'var(--text)', minWidth:46, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {label}
+                      </span>
+                      <input
+                        type="number" min="0" step="any" placeholder="0.00"
+                        value={customSplits[p.id] ?? ''}
+                        onChange={e => setCustomSplits({ ...customSplits, [p.id]: e.target.value === '' ? '' : e.target.value })}
+                        style={splitInputStyle}
                       />
                       <span style={{ fontSize:12, fontWeight:600, color:'var(--text2)', minWidth:30 }}>LKR</span>
                     </div>

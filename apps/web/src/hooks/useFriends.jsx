@@ -19,6 +19,8 @@ export function useFriends() {
     setError(null)
     try {
       const friendsData = await friendService.getFriends()
+      console.log(friendsData);
+      
       setFriends(friendsData.all || [])
     } catch (err) {
       setError(err.message || 'Failed to load friends')

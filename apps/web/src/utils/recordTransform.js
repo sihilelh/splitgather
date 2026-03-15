@@ -94,7 +94,13 @@ export function transformExpenseToRecord(expense, currentUserId) {
     record.splitMode = expense.splitMode
   }
   if (expense.splitData) {
-    record.splitData = expense.splitData
+    // Convert string UI IDs (e.g. "3" or "u1") to numeric IDs that the backend expects
+    const numericSplitData = {}
+    Object.entries(expense.splitData).forEach(([id, amt]) => {
+      const numId = parseInt(String(id).match(/\d+/)?.[0], 10)
+      if (!isNaN(numId)) numericSplitData[numId] = amt
+    })
+    record.splitData = numericSplitData
   }
 
   return record

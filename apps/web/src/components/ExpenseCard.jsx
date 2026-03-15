@@ -33,8 +33,17 @@ export default function ExpenseCard({ expense, friends, currentUserId = 'u1', on
   
   const getName = (id) => {
     if (String(id) === String(currentUserId)) return 'You'
+    // Check payer details embedded in the record
+    if (expense._record?.payer && String(expense._record.payer.id) === String(id)) {
+      return expense._record.payer.name
+    }
+    // Check split user details embedded in the record
+    const splitUser = expense._record?.splits?.find(s => String(s.userId) === String(id))?.user
+    if (splitUser) return splitUser.name
+    // Fall back to friends list
     return friends?.find(f => String(f.id) === String(id))?.name || '?'
   }
+  
 
   const payer = getName(expense.paidBy)
 
