@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react'
 import { BottomSheet, Input, Button, Avatar, Pill } from './UI.jsx'
-import { CATEGORY_META } from '../data/mockData.js'
+import { CATEGORY_META } from '../constants/categories.js'
 import CurrencyInput from './CurrencyInput.jsx'
 import ExpenseSummaryChip from './ExpenseSummaryChip.jsx'
 
-export default function AddExpenseModal({ open, onClose, friends, groups, onAdd }) {
+export default function AddExpenseModal({ open, onClose, friends, groups, currentUserId, onAdd }) {
   const [step, setStep]         = useState(1)
   const [title, setTitle]       = useState('')
   const [amount, setAmount]     = useState('')
   const [category, setCategory] = useState('food')
   const [groupId, setGroupId]   = useState(null)
+  const [expenseDate, setExpenseDate] = useState('')
   const [splitWith, setSplitWith] = useState([])
   const [splitMode, setSplitMode] = useState('equal') // 'equal', 'percentage', 'custom'
   const [customSplits, setCustomSplits] = useState({}) // { friendId: amount }
@@ -22,6 +23,7 @@ export default function AddExpenseModal({ open, onClose, friends, groups, onAdd 
     setAmount('')
     setCategory('food')
     setGroupId(null)
+    setExpenseDate('')
     setSplitWith([])
     setSplitMode('equal')
     setCustomSplits({})
@@ -37,17 +39,19 @@ export default function AddExpenseModal({ open, onClose, friends, groups, onAdd 
   
   // Calculate total for custom split
   const customTotal = useMemo(() => {
-    const myAmount = customSplits['u1'] || 0
+    const userId = currentUserId || 'u1'
+    const myAmount = customSplits[userId] || 0
     const othersTotal = Object.values(customSplits).reduce((s, v) => s + parseFloat(v || 0), 0) - myAmount
     return myAmount + othersTotal
-  }, [customSplits])
+  }, [customSplits, currentUserId])
   
   // Calculate percentage splits validation
   const percentageTotal = useMemo(() => {
-    const myPct = percentageSplits['u1'] || 0
+    const userId = currentUserId || 'u1'
+    const myPct = percentageSplits[userId] || 0
     const othersTotal = Object.values(percentageSplits).reduce((s, v) => s + parseFloat(v || 0), 0) - myPct
     return myPct + othersTotal
-  }, [percentageSplits])
+  }, [percentageSplits, currentUserId])
   
   const canNext = title.trim() && parseFloat(amount) > 0
   
@@ -66,15 +70,16 @@ export default function AddExpenseModal({ open, onClose, friends, groups, onAdd 
   const generateSplitData = () => {
     const numPeople = splitWith.length + 1
     const splits = {}
+    const userId = currentUserId || 'u1'
     
     if (splitMode === 'equal') {
       const perPersonAmount = parseFloat(amount) / numPeople
-      splits['u1'] = perPersonAmount
+      splits[userId] = perPersonAmount
       splitWith.forEach(id => {
         splits[id] = perPersonAmount
       })
     } else if (splitMode === 'percentage') {
-      splits['u1'] = (parseFloat(amount) * (percentageSplits['u1'] || 0)) / 100
+      splits[userId] = (parseFloat(amount) * (percentageSplits[userId] || 0)) / 100
       splitWith.forEach(id => {
         splits[id] = (parseFloat(amount) * (percentageSplits[id] || 0)) / 100
       })
@@ -84,14 +89,19 @@ export default function AddExpenseModal({ open, onClose, friends, groups, onAdd 
       })
     }
     
+    // Return in expense format (UI format) - useStore will transform to API format
     return {
       title: title.trim(),
+      description: title.trim(), // Also include for API
       amount: parseFloat(amount),
-      category,
-      groupId,
-      splitWith,
-      paidBy: 'u1',
-      splits, // Add detailed split information
+      category: category || 'other',
+      groupId: groupId || null,
+      date: expenseDate || new Date().toISOString().slice(0, 10),
+      expenseDate: expenseDate || null, // For API
+      paidBy: userId, // Keep as string for UI
+      splitWith: splitWith, // Array of friend IDs (strings)
+      splitMode,
+      splitData: splits, // For API transformation
     }
   }
 
@@ -125,6 +135,40 @@ export default function AddExpenseModal({ open, onClose, friends, groups, onAdd 
             onFocus={()=>setAmountFocused(true)}
             onBlur={()=>setAmountFocused(false)}
           />
+
+          {/* Date */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{
+              display: 'block',
+              fontSize: 11,
+              fontWeight: 700,
+              color: 'var(--text3)',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              marginBottom: 8,
+            }}>
+              Date of Expense
+            </label>
+            <input
+              type="date"
+              value={expenseDate}
+              onChange={e => setExpenseDate(e.target.value)}
+              style={{
+                width: '100%',
+                background: 'rgba(255,255,255,0.60)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                border: '1.5px solid rgba(255,255,255,0.80)',
+                borderRadius: 'var(--r-md)',
+                padding: '13px 14px',
+                fontSize: 15,
+                fontWeight: 600,
+                color: 'var(--text)',
+                fontFamily: 'var(--font-body)',
+                outline: 'none',
+              }}
+            />
+          </div>
 
           {/* Category */}
           <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text3)',
@@ -257,20 +301,20 @@ export default function AddExpenseModal({ open, onClose, friends, groups, onAdd 
                 Assign percentages (total: {percentageTotal.toFixed(1)}%)
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                <div key="u1" style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <div key={currentUserId || 'u1'} style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <span style={{ fontSize:12, fontWeight:700, color:'var(--text)', minWidth:40 }}>You</span>
                   <input type="number" min="0" max="100" placeholder="%" 
-                    value={percentageSplits['u1'] || ''} 
-                    onChange={e=>setPercentageSplits({...percentageSplits, 'u1': parseFloat(e.target.value) || 0})}
+                    value={percentageSplits[currentUserId || 'u1'] || ''} 
+                    onChange={e=>setPercentageSplits({...percentageSplits, [currentUserId || 'u1']: parseFloat(e.target.value) || 0})}
                     style={{
                       flex:1, height:36, padding:'0 8px', borderRadius:8,
                       border:'1.5px solid rgba(255,255,255,0.75)',
                       background:'rgba(255,255,255,0.50)', fontSize:12, fontFamily:'var(--font-body)',
                     }}
                   />
-                  <span style={{ fontSize:12, fontWeight:600, color:'var(--text2)', minWidth:50, textAlign:'right' }}>
-                    LKR {((parseFloat(percentageSplits['u1'] || 0) / 100) * parseFloat(amount)).toFixed(2)}
-                  </span>
+                      <span style={{ fontSize:12, fontWeight:600, color:'var(--text2)', minWidth:50, textAlign:'right' }}>
+                        LKR {((parseFloat(percentageSplits[currentUserId || 'u1'] || 0) / 100) * parseFloat(amount)).toFixed(2)}
+                      </span>
                 </div>
                 {splitWith.map(fid => {
                   const f = friends.find(x=>x.id===fid)
@@ -305,11 +349,11 @@ export default function AddExpenseModal({ open, onClose, friends, groups, onAdd 
                 Enter amounts (total: LKR {customTotal.toFixed(2)})
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                <div key="u1" style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <div key={currentUserId || 'u1'} style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <span style={{ fontSize:12, fontWeight:700, color:'var(--text)', minWidth:40 }}>You</span>
                   <input type="number" min="0" placeholder="0.00" 
-                    value={customSplits['u1'] || ''} 
-                    onChange={e=>setCustomSplits({...customSplits, 'u1': e.target.value})}
+                    value={customSplits[currentUserId || 'u1'] || ''} 
+                    onChange={e=>setCustomSplits({...customSplits, [currentUserId || 'u1']: e.target.value})}
                     style={{
                       flex:1, height:36, padding:'0 8px', borderRadius:8,
                       border:'1.5px solid rgba(255,255,255,0.75)',

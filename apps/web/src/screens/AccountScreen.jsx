@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, SectionLabel, Avatar, Button } from '../components/UI.jsx'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { CATEGORY_META } from '../data/mockData.js'
+import { CATEGORY_META } from '../constants/categories.js'
 import StatsCard from '../components/StatsCard.jsx'
 
 const MENU = [
@@ -15,19 +15,23 @@ const MENU = [
   { icon:'❓', label:'Help & Support',       section:'Feedback' },
 ]
 
-export default function AccountScreen({ currentUser, friends, expenses }) {
+export default function AccountScreen({ currentUser, friends, expenses: expensesProp }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
   const displayUser = user || currentUser
-  const totalSpent   = expenses.reduce((s,e)=>s+e.amount, 0)
-  const youPaidCount = expenses.filter(e=>e.paidBy==='u1').length
+  const currentUserId = user ? String(user.id) : (currentUser?.id || 'u1')
+  const expenses = expensesProp || []
+  
+  const totalSpent   = expenses.reduce((s,e)=>s+(e.amount || 0), 0)
+  const youPaidCount = expenses.filter(e=>String(e.paidBy) === String(currentUserId)).length
 
   const catBreak = expenses
-    .filter(e=>e.paidBy==='u1'||e.splitWith.includes('u1'))
+    .filter(e=>String(e.paidBy) === String(currentUserId) || (e.splitWith || []).includes(currentUserId))
     .reduce((acc,e)=>{
-      const share = e.amount/(e.splitWith.length+1)
-      acc[e.category] = (acc[e.category]||0)+share
+      const share = (e.amount || 0)/((e.splitWith?.length || 0)+1)
+      const cat = e.category || 'other'
+      acc[cat] = (acc[cat]||0)+share
       return acc
     },{})
   const topCats = Object.entries(catBreak).sort((a,b)=>b[1]-a[1]).slice(0,4)
@@ -57,7 +61,7 @@ export default function AccountScreen({ currentUser, friends, expenses }) {
             pointerEvents:'none' }}/>
           <div style={{ display:'flex', alignItems:'center', gap:16 }}>
             <div style={{ position:'relative' }}>
-              <Avatar initials={currentUser.initials} color="#1FD888" size={62}/>
+              <Avatar initials={displayUser?.initials || currentUser?.initials || 'U'} color={displayUser?.color || currentUser?.color || "#1FD888"} size={62}/>
               <div style={{
                 position:'absolute', bottom:0, right:0, width:24, height:24,
                 background:'rgba(255,255,255,0.85)',
@@ -69,10 +73,10 @@ export default function AccountScreen({ currentUser, friends, expenses }) {
             </div>
             <div style={{ flex:1 }}>
               <div style={{ fontSize:20, fontWeight:800, color:'var(--text)', letterSpacing:'-0.02em' }}>
-                {displayUser?.name || currentUser.name}
+                {displayUser?.name || currentUser?.name || 'User'}
               </div>
               <div style={{ fontSize:13, color:'var(--text2)', marginTop:2 }}>
-                {displayUser?.email || currentUser.email}
+                {displayUser?.email || currentUser?.email || ''}
               </div>
             </div>
             <button style={{

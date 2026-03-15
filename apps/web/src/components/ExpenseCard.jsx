@@ -1,15 +1,15 @@
 import React from 'react'
 import { Card, CategoryIcon } from './UI.jsx'
-import { CATEGORY_META } from '../data/mockData.js'
+import { CATEGORY_META } from '../constants/categories.js'
 
 export default function ExpenseCard({ expense, friends, currentUserId = 'u1', onClick, showBalance = true, showCategoryBadge = false, showPeopleCount = false }) {
   const meta = CATEGORY_META[expense.category] || CATEGORY_META.other
-  const youPaid = expense.paidBy === currentUserId
+  const youPaid = String(expense.paidBy) === String(currentUserId)
   const per = expense.splitWith ? (expense.amount / (expense.splitWith.length + 1)).toFixed(2) : expense.amount.toFixed(2)
   
   const getName = (id) => {
-    if (id === currentUserId) return 'You'
-    return friends?.find(f => f.id === id)?.name || '?'
+    if (String(id) === String(currentUserId)) return 'You'
+    return friends?.find(f => String(f.id) === String(id))?.name || '?'
   }
 
   const payer = getName(expense.paidBy)
@@ -20,7 +20,7 @@ export default function ExpenseCard({ expense, friends, currentUserId = 'u1', on
         <CategoryIcon meta={meta} size={showCategoryBadge ? 46 : 42} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: showCategoryBadge ? 800 : 700, fontSize: showCategoryBadge ? 15 : 14, color: 'var(--text)', marginBottom: showCategoryBadge ? 2 : 0 }}>
-            {expense.title}
+            {expense.description || expense.title}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: showCategoryBadge ? 0 : 0, marginBottom: showCategoryBadge ? 5 : 0 }}>
             {showPeopleCount 
@@ -48,7 +48,7 @@ export default function ExpenseCard({ expense, friends, currentUserId = 'u1', on
           )}
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          {showBalance && (youPaid || (expense.splitWith && expense.splitWith.includes(currentUserId))) ? (
+          {showBalance && (youPaid || (expense.splitWith && expense.splitWith.some(id => String(id) === String(currentUserId)))) ? (
             <>
               <div style={{
                 fontWeight: 800,
@@ -72,7 +72,7 @@ export default function ExpenseCard({ expense, friends, currentUserId = 'u1', on
               }}>
                 LKR {expense.amount.toFixed(2)}
               </div>
-              {showCategoryBadge && !youPaid && !(expense.splitWith && expense.splitWith.includes(currentUserId)) && (
+              {showCategoryBadge && !youPaid && !(expense.splitWith && expense.splitWith.some(id => String(id) === String(currentUserId))) && (
                 <div style={{ fontSize: 11, color: 'var(--text3)' }}>not involved</div>
               )}
             </>

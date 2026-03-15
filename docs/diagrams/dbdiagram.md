@@ -36,6 +36,8 @@ Table records {
   paid_by int
   description varchar
   amount decimal
+  category varchar [null] // expense category (food, travel, utilities, etc.)
+  expense_date timestamp [null] // date of expense (separate from created_at)
   created_at timestamp
 }
 
@@ -44,6 +46,27 @@ Table record_splits {
   record_id int
   user_id int
   amount decimal
+}
+
+Table settlements {
+  id int [pk, increment]
+  payer_id int
+  receiver_id int
+  amount decimal
+  group_id int [null] // optional group context
+  note varchar [null] // optional description
+  created_by int
+  created_at timestamp
+}
+
+Table record_history {
+  id int [pk, increment]
+  record_id int
+  action varchar // 'created', 'updated', 'deleted'
+  changed_by int
+  old_data text [null] // JSON snapshot of previous state
+  new_data text [null] // JSON snapshot of new state
+  created_at timestamp
 }
 
 Ref: friends.user_id > users.id
@@ -59,5 +82,13 @@ Ref: records.paid_by > users.id
 
 Ref: record_splits.record_id > records.id
 Ref: record_splits.user_id > users.id
+
+Ref: settlements.payer_id > users.id
+Ref: settlements.receiver_id > users.id
+Ref: settlements.group_id > groups.id
+Ref: settlements.created_by > users.id
+
+Ref: record_history.record_id > records.id
+Ref: record_history.changed_by > users.id
 
 ```

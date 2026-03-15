@@ -1,19 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Card, SectionLabel, Avatar, BalanceBadge, Button, EmptyState, BottomSheet, Input } from '../components/UI.jsx'
 import { useFriends } from '../hooks/useFriends.jsx'
+import { useSettlements } from '../hooks/useSettlements.jsx'
 import { getInitials, getColorForUser } from '../utils/helpers.js'
 import BackButton from '../components/BackButton.jsx'
 import SearchInput from '../components/SearchInput.jsx'
 import FriendRow from '../components/FriendRow.jsx'
 import ExpenseCard from '../components/ExpenseCard.jsx'
 import BalanceHeroCard from '../components/BalanceHeroCard.jsx'
-import CurrencyInput from '../components/CurrencyInput.jsx'
-import PaymentMethodSelector from '../components/PaymentMethodSelector.jsx'
+import SettleUpModal from '../components/SettleUpModal.jsx'
 import LoadingState from '../components/LoadingState.jsx'
 import ErrorState from '../components/ErrorState.jsx'
 
-export default function FriendsScreen({ expenses, onSettle }) {
-  const { friends, loading, error, searchUsers: searchUsersAPI, addFriend: addFriendAPI, getFriendsByCategory } = useFriends()
+export default function FriendsScreen({ expenses, currentUserId, onSettle }) {
+  const { friends, loading, error, searchUsers: searchUsersAPI, addFriend: addFriendAPI, getFriendsByCategory, refreshFriends } = useFriends()
+  const { createSettlement } = useSettlements()
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -21,9 +22,7 @@ export default function FriendsScreen({ expenses, onSettle }) {
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [showMore, setShowMore] = useState(false)
-  const [showSettle, setShowSettle] = useState(false)
-  const [settleAmount, setSettleAmount] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [showSettleModal, setShowSettleModal] = useState(false)
 
   // Transform API friends to UI format
   const transformedFriends = friends.map(f => ({
@@ -107,7 +106,7 @@ export default function FriendsScreen({ expenses, onSettle }) {
               title={sf.balance > 0 ? `${sf.name} owes you` : `You owe ${sf.name}`}
               balance={sf.balance}
               color={sf.balance > 0 ? '#1FD888' : '#d23214'}
-              onAction={() => { setSettleAmount(Math.abs(sf.balance).toString()); setShowSettle(true) }}
+              onAction={() => setShowSettleModal(true)}
               actionLabel="Settle Up ✓"
               style={{ padding: '18px 18px', marginBottom: 12 }}
             />
@@ -201,7 +200,31 @@ export default function FriendsScreen({ expenses, onSettle }) {
           <SectionLabel className="a3">Owe You · LKR {oweYou.reduce((s, f) => s + Math.abs(f.balance), 0).toFixed(2)}</SectionLabel>
           {oweYou.filter(f => f.name.toLowerCase().includes(search.toLowerCase())).map(f => (
             <Card key={f.id} className="a4" onClick={() => setSelected(f.id)}>
-              <FriendRow friend={f} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <Avatar initials={f.initials} color={f.color} size={44} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{f.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 1 }}>
+                    {f.balance === 0
+                      ? 'All settled up ✓'
+                      : f.balance > 0
+                      ? `Owes you LKR ${f.balance.toFixed(2)}`
+                      : `You owe LKR ${Math.abs(f.balance).toFixed(2)}`}
+                  </div>
+                </div>
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (f.balance !== 0) {
+                      setSelected(f.id)
+                      setShowSettleModal(true)
+                    }
+                  }}
+                  style={{ cursor: f.balance !== 0 ? 'pointer' : 'default' }}
+                >
+                  <BalanceBadge value={f.balance} />
+                </div>
+              </div>
             </Card>
           ))}
         </>)}
@@ -210,7 +233,31 @@ export default function FriendsScreen({ expenses, onSettle }) {
           <SectionLabel>You Owe · LKR {youOwe.reduce((s, f) => s + Math.abs(f.balance), 0).toFixed(2)}</SectionLabel>
           {youOwe.filter(f => f.name.toLowerCase().includes(search.toLowerCase())).map(f => (
             <Card key={f.id} onClick={() => setSelected(f.id)}>
-              <FriendRow friend={f} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <Avatar initials={f.initials} color={f.color} size={44} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{f.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 1 }}>
+                    {f.balance === 0
+                      ? 'All settled up ✓'
+                      : f.balance > 0
+                      ? `Owes you LKR ${f.balance.toFixed(2)}`
+                      : `You owe LKR ${Math.abs(f.balance).toFixed(2)}`}
+                  </div>
+                </div>
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (f.balance !== 0) {
+                      setSelected(f.id)
+                      setShowSettleModal(true)
+                    }
+                  }}
+                  style={{ cursor: f.balance !== 0 ? 'pointer' : 'default' }}
+                >
+                  <BalanceBadge value={f.balance} />
+                </div>
+              </div>
             </Card>
           ))}
         </>)}
@@ -319,117 +366,35 @@ export default function FriendsScreen({ expenses, onSettle }) {
       </BottomSheet>
 
       {/* Settle Up Modal */}
-      <BottomSheet
-        open={showSettle}
-        onClose={() => { setShowSettle(false); setSettleAmount(''); }}
-        title="Settle Up"
-      >
-        {sf && (
-          <>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '13px 16px',
-              background: 'linear-gradient(135deg, rgba(31,216,136,0.15), rgba(31,216,136,0.10))',
-              border: '1.5px solid rgba(31,216,136,0.30)',
-              borderRadius: 'var(--r-md)',
-              marginBottom: 16,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-            }}>
-              <span style={{ color: 'var(--text2)', fontSize: 13, fontWeight: 600 }}>
-                Total balance: {sf.balance > 0 ? 'owes you' : 'you owe'}
-              </span>
-              <span style={{
-                fontSize: 22,
-                fontWeight: 800,
-                color: 'var(--accent)',
-                letterSpacing: '-0.02em'
-              }}>
-                LKR {Math.abs(sf.balance).toFixed(2)}
-              </span>
-            </div>
-
-            <CurrencyInput
-              label="Payment Amount (LKR)"
-              value={settleAmount}
-              onChange={e => setSettleAmount(e.target.value)}
-              placeholder="0.00"
-            />
-            <button
-              onClick={() => setSettleAmount(Math.abs(sf.balance).toString())}
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'var(--accent)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '4px 0',
-                fontFamily: 'var(--font-body)',
-                marginTop: -8,
-                marginBottom: 16,
-              }}
-            >
-              Pay full amount (LKR {Math.abs(sf.balance).toFixed(2)})
-            </button>
-
-            <PaymentMethodSelector
-              selected={paymentMethod}
-              onSelect={setPaymentMethod}
-            />
-
-            {settleAmount && parseFloat(settleAmount) > 0 && (
-              <div style={{
-                background: 'rgba(31,216,136,0.08)',
-                border: '1.5px solid rgba(31,216,136,0.20)',
-                borderRadius: 'var(--r-md)',
-                padding: '12px 14px',
-                marginBottom: 16,
-                fontSize: 12,
-                color: 'var(--accent)',
-                fontWeight: 600,
-              }}>
-                {Math.abs(sf.balance) - parseFloat(settleAmount) > 0.01
-                  ? `Outstanding: LKR ${(Math.abs(sf.balance) - parseFloat(settleAmount)).toFixed(2)}`
-                  : parseFloat(settleAmount) - Math.abs(sf.balance) > 0.01
-                    ? `Overpayment: LKR ${(parseFloat(settleAmount) - Math.abs(sf.balance)).toFixed(2)}`
-                    : 'Fully settled!'}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setShowSettle(false)
-                  setSettleAmount('')
-                }}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  if (settleAmount && parseFloat(settleAmount) > 0) {
-                    onSettle(sf.id, {
-                      amount: parseFloat(settleAmount),
-                      method: paymentMethod,
-                    })
-                    setSelected(null)
-                    setShowSettle(false)
-                    setSettleAmount('')
-                  }
-                }}
-                disabled={!settleAmount || parseFloat(settleAmount) <= 0}
-                style={{ flex: 1 }}
-              >
-                Confirm Payment
-              </Button>
-            </div>
-          </>
-        )}
-      </BottomSheet>
+      <SettleUpModal
+        open={showSettleModal}
+        onClose={() => {
+          setShowSettleModal(false)
+          setSelected(null)
+        }}
+        friends={friends.map(f => ({
+          friendId: f.friendId,
+          friend: f.friend,
+          balance: f.balance,
+        }))}
+        currentUserId={currentUserId}
+        onSettle={async (settlementData) => {
+          try {
+            await createSettlement(settlementData)
+            await refreshFriends()
+            if (onSettle) {
+              onSettle(settlementData.receiverId === currentUserId ? settlementData.payerId : settlementData.receiverId, {
+                amount: settlementData.amount,
+              })
+            }
+            setShowSettleModal(false)
+            setSelected(null)
+          } catch (err) {
+            console.error('Failed to create settlement:', err)
+            alert(err.message || 'Failed to settle up')
+          }
+        }}
+      />
     </div>
   )
 }

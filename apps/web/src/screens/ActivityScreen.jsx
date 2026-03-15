@@ -2,6 +2,10 @@ import React, { useState } from 'react'
 import { SectionLabel, EmptyState, Pill } from '../components/UI.jsx'
 import FloatingActionButton from '../components/FloatingActionButton.jsx'
 import ExpenseCard from '../components/ExpenseCard.jsx'
+import EditExpenseModal from '../components/EditExpenseModal.jsx'
+import { useRecords } from '../hooks/useRecords.jsx'
+import { useAuth } from '../hooks/useAuth.jsx'
+import { useFriends } from '../hooks/useFriends.jsx'
 
 const FILTERS = [
   {id:'all',    label:'All'},
@@ -12,22 +16,38 @@ const FILTERS = [
   {id:'travel', label:'🚗 Travel'},
 ]
 
-export default function ActivityScreen({ expenses, friends, onAddExpense }) {
+export default function ActivityScreen({ expenses: expensesProp, friends: friendsProp, groups, onAddExpense, onExpenseUpdate }) {
+  const { user } = useAuth()
+  const { friends: friendsData } = useFriends()
+  const { expenses: recordsExpenses, updateRecord, refreshRecords } = useRecords()
   const [filter, setFilter] = useState('all')
-  const getName = id => id==='u1'?'You':friends.find(f=>f.id===id)?.name||'?'
+  const [selectedExpense, setSelectedExpense] = useState(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  
+  // Use expenses from prop if provided, otherwise from useRecords
+  const expenses = expensesProp || recordsExpenses || []
+  const friends = friendsProp || friendsData || []
+  const currentUserId = user ? String(user.id) : 'u1'
+  
+  const getName = id => {
+    if (String(id) === String(currentUserId)) return 'You'
+    return friends.find(f=>String(f.id) === String(id))?.name||'?'
+  }
 
   const filtered = expenses.filter(e=>{
-    if(filter==='paid')   return e.paidBy==='u1'
-    if(filter==='owe')    return e.paidBy!=='u1'&&e.splitWith.includes('u1')
+    if(!e) return false
+    if(filter==='paid')   return String(e.paidBy) === String(currentUserId)
+    if(filter==='owe')    return String(e.paidBy) !== String(currentUserId) && (e.splitWith || []).includes(currentUserId)
     if(filter==='food')   return e.category==='food'
     if(filter==='edu')    return e.category==='education'
     if(filter==='travel') return e.category==='transport'
     return true
   })
 
-  const sorted = [...filtered].sort((a,b)=>b.date.localeCompare(a.date))
+  const sorted = [...filtered].sort((a,b)=>(b.date || '').localeCompare(a.date || ''))
 
   const grouped = sorted.reduce((acc,e)=>{
+    if(!e.date) return acc
     const d=new Date(e.date), now=new Date()
     const diff=Math.floor((now-d)/86400000)
     const label=diff===0?'Today':diff===1?'Yesterday':diff<7?`${diff} days ago`:e.date
@@ -61,10 +81,14 @@ export default function ActivityScreen({ expenses, friends, onAddExpense }) {
                   key={e.id}
                   expense={e}
                   friends={friends}
-                  currentUserId="u1"
+                  currentUserId={currentUserId || "u1"}
                   showBalance={true}
                   showCategoryBadge={true}
                   showPeopleCount={true}
+                  onClick={() => {
+                    setSelectedExpense(e)
+                    setShowEditModal(true)
+                  }}
                 />
               ))}
             </div>
@@ -74,6 +98,35 @@ export default function ActivityScreen({ expenses, friends, onAddExpense }) {
 
       {/* FAB */}
       <FloatingActionButton onClick={onAddExpense} />
+
+      {/* Edit Expense Modal */}
+      {selectedExpense && (
+        <EditExpenseModal
+          open={showEditModal}
+          onClose={() => {
+            setShowEditModal(false)
+            setSelectedExpense(null)
+          }}
+          record={selectedExpense}
+          friends={friends}
+          groups={groups || []}
+          currentUserId={currentUserId || "u1"}
+          onUpdate={async (recordId, updateData) => {
+            try {
+              await updateRecord(recordId, updateData)
+              await refreshRecords()
+              if (onExpenseUpdate) {
+                onExpenseUpdate(recordId, updateData)
+              }
+              setShowEditModal(false)
+              setSelectedExpense(null)
+            } catch (err) {
+              console.error('Failed to update expense:', err)
+              alert(err.message || 'Failed to update expense')
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

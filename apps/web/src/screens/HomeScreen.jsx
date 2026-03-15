@@ -8,10 +8,18 @@ import GroupCard from '../components/GroupCard.jsx'
 
 export default function HomeScreen({ currentUser, friends, groups, expenses, totalOwed, totalOwe, netBalance, onAddExpense }) {
   const navigate = useNavigate()
-  const recent = [...expenses].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4)
-  const getName = id => id==='u1'?'You':friends.find(f=>f.id===id)?.name||'?'
+  const recent = [...(expenses || [])].sort((a,b)=>(b.date || '').localeCompare(a.date || '')).slice(0,4)
+  const currentUserId = currentUser?.id || 'u1'
+  const getName = id => {
+    if (String(id) === String(currentUserId)) return 'You'
+    return friends.find(f=>String(f.id) === String(id))?.name||'?'
+  }
   const hour = new Date().getHours()
   const greeting = hour<12?'Good morning ☀️':hour<17?'Good afternoon 🌤':'Good evening 🌙'
+  
+  if (!currentUser) {
+    return <div>Loading...</div>
+  }
 
   return (
     <div style={{ flex:1, overflowY:'auto', paddingBottom:90, position:'relative', zIndex:1 }}>
@@ -21,7 +29,7 @@ export default function HomeScreen({ currentUser, friends, groups, expenses, tot
           <div>
             <div style={{ fontSize:13, color:'var(--text3)', marginBottom:3, fontWeight:500 }}>{greeting}</div>
             <h1 style={{ fontSize:28, fontWeight:800, color:'var(--text)', letterSpacing:'-0.03em', lineHeight:1.1 }}>
-              Hey, {currentUser.name.split(' ')[0]} 👋
+              Hey, {currentUser?.name?.split(' ')[0] || 'User'} 👋
             </h1>
           </div>
           <div style={{ position:'relative' }}>
@@ -31,7 +39,7 @@ export default function HomeScreen({ currentUser, friends, groups, expenses, tot
               animation:'pulseRing 2.5s ease-out infinite',
               opacity:0,
             }}/>
-            <Avatar initials={currentUser.initials} color="#1FD888" size={50}/>
+            <Avatar initials={currentUser?.initials || 'U'} color={currentUser?.color || "#1FD888"} size={50}/>
           </div>
         </div>
 
@@ -128,7 +136,7 @@ export default function HomeScreen({ currentUser, friends, groups, expenses, tot
             <GroupCard
               key={g.id}
               group={g}
-              expenseCount={expenses.filter(e=>e.groupId===g.id).length}
+              expenseCount={(expenses || []).filter(e=>String(e.groupId) === String(g.id)).length}
               onClick={()=>navigate('/groups')}
             />
           ))}
@@ -147,7 +155,7 @@ export default function HomeScreen({ currentUser, friends, groups, expenses, tot
               key={e.id}
               expense={e}
               friends={friends}
-              currentUserId="u1"
+              currentUserId={currentUserId}
               showBalance={true}
             />
           ))}

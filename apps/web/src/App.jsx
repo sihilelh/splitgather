@@ -34,18 +34,29 @@ function AppContent() {
     setTimeout(()=>setToast(null), 3200)
   }
 
-  const handleAddExpense = useCallback((data) => {
-    addExpense(data)
-    showToast(`"${data.title}" added · LKR ${(data.amount/(data.splitWith.length+1)).toFixed(2)} each`)
+  const handleAddExpense = useCallback(async (data) => {
+    try {
+      await addExpense(data)
+      const splitCount = (data.splitWith?.length || 0) + 1
+      showToast(`"${data.title}" added · LKR ${(data.amount/splitCount).toFixed(2)} each`)
+    } catch (err) {
+      console.error('Failed to add expense:', err)
+      showToast(err.message || 'Failed to add expense')
+    }
   }, [addExpense])
 
-  const handleSettle = useCallback((friendId, paymentDetails) => {
-    settleWithFriend(friendId)
-    const name = friends.find(f=>f.id===friendId)?.name||'Friend'
-    const message = paymentDetails
-      ? `Paid LKR ${paymentDetails.amount.toFixed(2)} to ${name} via ${paymentDetails.method} 🎉`
-      : `Settled up with ${name} 🎉`
-    showToast(message)
+  const handleSettle = useCallback(async (friendId, paymentDetails) => {
+    try {
+      await settleWithFriend(friendId, paymentDetails)
+      const name = friends.find(f=>f.id===friendId)?.name||'Friend'
+      const message = paymentDetails
+        ? `Paid LKR ${paymentDetails.amount.toFixed(2)} to ${name} via ${paymentDetails.method} 🎉`
+        : `Settled up with ${name} 🎉`
+      showToast(message)
+    } catch (err) {
+      console.error('Failed to settle:', err)
+      showToast(err.message || 'Failed to settle')
+    }
   }, [settleWithFriend, friends])
 
   return (
@@ -132,8 +143,14 @@ function AppContent() {
         </Routes>
       </div>
 
-      <AddExpenseModal open={showAdd} onClose={()=>setShowAdd(false)}
-        friends={friends} groups={groups} onAdd={handleAddExpense}/>
+      <AddExpenseModal 
+        open={showAdd} 
+        onClose={()=>setShowAdd(false)}
+        friends={friends} 
+        groups={groups} 
+        currentUser={currentUser}
+        onAdd={handleAddExpense}
+      />
 
       <Toast message={toast}/>
     </div>

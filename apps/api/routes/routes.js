@@ -2,6 +2,8 @@ import { Router } from "express";
 import authRouter from "./authRoutes.js";
 import friendRouter from "./friendRoutes.js";
 import groupRouter from "./groupRoutes.js";
+import recordRouter from "./recordRoutes.js";
+import settlementRouter from "./settlementRoutes.js";
 
 const apiRouter = Router();
 
@@ -12,5 +14,7 @@ apiRouter.use("/health", (req, res) => {
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/friends", friendRouter);
 apiRouter.use("/groups", groupRouter);
+apiRouter.use("/records", recordRouter);
+apiRouter.use("/settlements", settlementRouter);
 
 export default apiRouter;

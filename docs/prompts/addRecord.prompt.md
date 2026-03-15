@@ -22,3 +22,4 @@ Constraints:
  - The system should also handle cases where a user is added or removed from the expense after it has been created, and adjust the owed and lend amounts accordingly.
  - The system should maintain a history of changes for each record, allowing users to see the previous versions of the record and the changes made over time.
 Architectural Info:
+Every record is stored in two places. Friends table (for display purposes and settle purposes), records and record splits. The functionality should be clearly seperated.

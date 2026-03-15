@@ -45,6 +45,8 @@ export const records = sqliteTable('records', {
   paidBy: integer('paid_by').notNull().references(() => users.id),
   description: text('description').notNull(),
   amount: real('amount').notNull(),
+  category: text('category'), // Expense category (e.g., food, travel, utilities)
+  expenseDate: integer('expense_date', { mode: 'timestamp' }), // Date of expense (separate from created_at)
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
@@ -56,6 +58,29 @@ export const recordSplits = sqliteTable('record_splits', {
   amount: real('amount').notNull(),
 });
 
+// Settlements table
+export const settlements = sqliteTable('settlements', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  payerId: integer('payer_id').notNull().references(() => users.id),
+  receiverId: integer('receiver_id').notNull().references(() => users.id),
+  amount: real('amount').notNull(),
+  groupId: integer('group_id').references(() => groups.id), // Optional group context
+  note: text('note'), // Optional description
+  createdBy: integer('created_by').notNull().references(() => users.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
+
+// Record history table
+export const recordHistory = sqliteTable('record_history', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  recordId: integer('record_id').notNull().references(() => records.id),
+  action: text('action').notNull(), // 'created', 'updated', 'deleted'
+  changedBy: integer('changed_by').notNull().references(() => users.id),
+  oldData: text('old_data'), // JSON snapshot of previous state
+  newData: text('new_data'), // JSON snapshot of new state
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   friendsAsUserA: many(friends, { relationName: 'userA' }),
@@ -64,6 +89,10 @@ export const usersRelations = relations(users, ({ many }) => ({
   groupParticipants: many(groupParticipants),
   paidRecords: many(records),
   recordSplits: many(recordSplits),
+  settlementsAsPayer: many(settlements, { relationName: 'payer' }),
+  settlementsAsReceiver: many(settlements, { relationName: 'receiver' }),
+  createdSettlements: many(settlements, { relationName: 'creator' }),
+  recordHistoryEntries: many(recordHistory),
 }));
 
 export const friendsRelations = relations(friends, ({ one }) => ({
@@ -86,6 +115,7 @@ export const groupsRelations = relations(groups, ({ one, many }) => ({
   }),
   participants: many(groupParticipants),
   records: many(records),
+  settlements: many(settlements),
 }));
 
 export const groupParticipantsRelations = relations(groupParticipants, ({ one }) => ({
@@ -118,6 +148,39 @@ export const recordSplitsRelations = relations(recordSplits, ({ one }) => ({
   }),
   user: one(users, {
     fields: [recordSplits.userId],
+    references: [users.id],
+  }),
+}));
+
+export const settlementsRelations = relations(settlements, ({ one }) => ({
+  payer: one(users, {
+    fields: [settlements.payerId],
+    references: [users.id],
+    relationName: 'payer',
+  }),
+  receiver: one(users, {
+    fields: [settlements.receiverId],
+    references: [users.id],
+    relationName: 'receiver',
+  }),
+  group: one(groups, {
+    fields: [settlements.groupId],
+    references: [groups.id],
+  }),
+  creator: one(users, {
+    fields: [settlements.createdBy],
+    references: [users.id],
+    relationName: 'creator',
+  }),
+}));
+
+export const recordHistoryRelations = relations(recordHistory, ({ one }) => ({
+  record: one(records, {
+    fields: [recordHistory.recordId],
+    references: [records.id],
+  }),
+  changedByUser: one(users, {
+    fields: [recordHistory.changedBy],
     references: [users.id],
   }),
 }));
