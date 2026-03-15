@@ -162,7 +162,7 @@ export default function GroupsScreen() {
               onChange={e=>setNewName(e.target.value)}
               onKeyPress={handleNameKeyPress}
             />
-            <div style={{ fontSize:12, color:'var(--text3)', marginTop:-8, marginBottom:12 }}>
+            <div style={{ fontSize:12, color:'var(--text3)', marginTop:8, marginBottom:16 }}>
               Press Enter to continue
             </div>
           </>
