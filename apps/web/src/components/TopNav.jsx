@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useTheme } from '../hooks/useTheme.jsx'
@@ -16,6 +16,21 @@ export default function TopNav({ currentPath }) {
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef(null)
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false)
+      }
+    }
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMenu])
 
   const handleLogout = () => {
     logout()
@@ -97,7 +112,7 @@ export default function TopNav({ currentPath }) {
         </div>
 
         {/* User menu dropdown */}
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }} ref={menuRef}>
           <button
             onClick={() => setShowMenu(!showMenu)}
             style={{
@@ -135,14 +150,16 @@ export default function TopNav({ currentPath }) {
               top:'100%',
               right:0,
               marginTop:8,
-              background:'var(--card-bg)',
+              background: theme === 'light' 
+                ? 'rgba(245,250,248,0.95)' 
+                : 'rgba(16,16,20,0.95)',
               borderRadius:'var(--r-lg)',
               border:'1.5px solid var(--glass-border)',
-              boxShadow:'0 8px 32px rgba(0,0,0,0.15)',
+              boxShadow:'0 12px 40px rgba(0,0,0,0.25)',
               backdropFilter:'blur(12px)',
               WebkitBackdropFilter:'blur(12px)',
               minWidth:200,
-              zIndex:300,
+              zIndex:1000,
               overflow:'hidden',
             }}>
               {/* All nav items */}
@@ -206,35 +223,38 @@ export default function TopNav({ currentPath }) {
                 <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
               </button>
 
-              <div style={{
-                height:'1px',
-                background:'rgba(255,255,255,0.10)',
-                margin:'6px 0',
-              }}/>
+              {user && (
+                <>
+                  <div style={{
+                    height:'1px',
+                    background:'rgba(255,255,255,0.10)',
+                    margin:'6px 0',
+                  }}/>
 
-              {/* 
-              {/* Logout button */}
-              <button
-                onClick={handleLogout}
-                style={{
-                  width:'100%',
-                  padding:'12px 16px',
-                  display:'flex',
-                  alignItems:'center',
-                  gap:10,
-                  background:'transparent',
-                  border:'none',
-                  color:'#ef4444',
-                  fontSize:13,
-                  fontWeight:600,
-                  cursor:'pointer',
-                  fontFamily:'var(--font-body)',
-                  transition:'all .2s',
-                }}
-              >
-                <span style={{fontSize:16}}>🚪</span>
-                <span>Logout</span>
-              </button>
+                  {/* Logout button */}
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      width:'100%',
+                      padding:'12px 16px',
+                      display:'flex',
+                      alignItems:'center',
+                      gap:10,
+                      background:'transparent',
+                      border:'none',
+                      color:'#ef4444',
+                      fontSize:13,
+                      fontWeight:600,
+                      cursor:'pointer',
+                      fontFamily:'var(--font-body)',
+                      transition:'all .2s',
+                    }}
+                  >
+                    <span style={{fontSize:16}}>🚪</span>
+                    <span>Logout</span>
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
