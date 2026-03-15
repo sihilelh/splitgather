@@ -195,6 +195,12 @@ export async function getRecords(req, res) {
     const { id: userId } = req.user;
     const { groupId } = req.query;
 
+    console.log('[getRecords Controller] Request received:', {
+      userId,
+      groupId: groupId || 'none',
+      query: req.query,
+    });
+
     const filters = {};
     if (groupId) {
       const groupIdNum = parseInt(groupId, 10);
@@ -203,13 +209,21 @@ export async function getRecords(req, res) {
       }
     }
 
+    console.log('[getRecords Controller] Filters:', filters);
+
     const records = await recordService.getRecordsForUser(userId, filters);
+
+    console.log('[getRecords Controller] Records returned:', {
+      count: records?.length || 0,
+      records: records?.slice(0, 2), // Log first 2 records for debugging
+    });
 
     res.status(200).json({
       success: true,
       records,
     });
   } catch (error) {
+    console.error('[getRecords Controller] Error:', error);
     const statusCode = error.statusCode || 500;
     res.status(statusCode).json({
       success: false,

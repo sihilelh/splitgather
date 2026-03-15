@@ -3,8 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Card, SectionLabel, Avatar, Button, EmptyState, BottomSheet, Input } from '../components/UI.jsx'
 import BackButton from '../components/BackButton.jsx'
 import BalanceHeroCard from '../components/BalanceHeroCard.jsx'
+import ExpenseCard from '../components/ExpenseCard.jsx'
+import EditExpenseModal from '../components/EditExpenseModal.jsx'
 import { useGroups } from '../hooks/useGroups.jsx'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useRecords } from '../hooks/useRecords.jsx'
+import { useFriends } from '../hooks/useFriends.jsx'
 import LoadingState from '../components/LoadingState.jsx'
 import ErrorState from '../components/ErrorState.jsx'
 
@@ -13,6 +17,11 @@ export default function GroupDetailScreen() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { getGroupById, addMembers, removeMember, exitGroup, searchFriendsForGroup, formatLKR } = useGroups()
+  const { friends } = useFriends()
+  const groupIdNum = groupId ? parseInt(groupId, 10) : null
+  const { expenses: recordsExpenses, loading: recordsLoading, updateRecord, refreshRecords } = useRecords(
+    groupIdNum ? { groupId: groupIdNum } : {}
+  )
   const [group, setGroup] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -22,6 +31,8 @@ export default function GroupDetailScreen() {
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [selectedFriends, setSelectedFriends] = useState([])
+  const [selectedExpense, setSelectedExpense] = useState(null)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   // Load group details
   useEffect(() => {
@@ -116,6 +127,21 @@ export default function GroupDetailScreen() {
       alert(err.message || 'Failed to add members')
     }
   }, [group, selectedFriends, addMembers, loadGroup])
+
+  // Process records for display
+  const currentUserId = user ? String(user.id) : 'u1'
+  const sortedRecords = [...(recordsExpenses || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+  
+  const groupedRecords = sortedRecords.reduce((acc, e) => {
+    if (!e.date) return acc
+    const d = new Date(e.date)
+    const now = new Date()
+    const diff = Math.floor((now - d) / 86400000)
+    const label = diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : diff < 7 ? `${diff} days ago` : e.date
+    if (!acc[label]) acc[label] = []
+    acc[label].push(e)
+    return acc
+  }, {})
 
   if (loading) {
     return <LoadingState message="Loading group..." />
@@ -244,9 +270,38 @@ export default function GroupDetailScreen() {
           </Card>
         )}
 
-        {/* Records section - placeholder */}
-        <SectionLabel>Records · 0</SectionLabel>
-        <EmptyState emoji="💸" title="No records yet" subtitle="Records will be developed later"/>
+        {/* Records section */}
+        <SectionLabel>
+          Records · {sortedRecords.length}
+        </SectionLabel>
+        {recordsLoading ? (
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)', fontSize: 13 }}>
+            Loading records...
+          </div>
+        ) : sortedRecords.length === 0 ? (
+          <EmptyState emoji="💸" title="No records yet" subtitle="Add your first expense to get started"/>
+        ) : (
+          Object.entries(groupedRecords).map(([label, items]) => (
+            <div key={label}>
+              <SectionLabel>{label}</SectionLabel>
+              {items.map((expense) => (
+                <ExpenseCard
+                  key={expense.id}
+                  expense={expense}
+                  friends={friends}
+                  currentUserId={currentUserId}
+                  showBalance={true}
+                  showCategoryBadge={true}
+                  showPeopleCount={true}
+                  onClick={() => {
+                    setSelectedExpense(expense)
+                    setShowEditModal(true)
+                  }}
+                />
+              ))}
+            </div>
+          ))
+        )}
       </div>
 
       {/* Add Members Sheet */}
@@ -337,6 +392,33 @@ export default function GroupDetailScreen() {
           Add {selectedFriends.length > 0 ? `${selectedFriends.length} ` : ''}Member{selectedFriends.length !== 1 ? 's' : ''}
         </Button>
       </BottomSheet>
+
+      {/* Edit Expense Modal */}
+      {selectedExpense && (
+        <EditExpenseModal
+          open={showEditModal}
+          onClose={() => {
+            setShowEditModal(false)
+            setSelectedExpense(null)
+          }}
+          record={selectedExpense}
+          friends={friends}
+          groups={[]}
+          currentUserId={currentUserId}
+          onUpdate={async (recordId, updateData) => {
+            try {
+              await updateRecord(recordId, updateData)
+              await refreshRecords()
+              await loadGroup() // Refresh group data to update balances
+              setShowEditModal(false)
+              setSelectedExpense(null)
+            } catch (err) {
+              console.error('Failed to update expense:', err)
+              alert(err.message || 'Failed to update expense')
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

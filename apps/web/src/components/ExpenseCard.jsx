@@ -5,7 +5,31 @@ import { CATEGORY_META } from '../constants/categories.js'
 export default function ExpenseCard({ expense, friends, currentUserId = 'u1', onClick, showBalance = true, showCategoryBadge = false, showPeopleCount = false }) {
   const meta = CATEGORY_META[expense.category] || CATEGORY_META.other
   const youPaid = String(expense.paidBy) === String(currentUserId)
-  const per = expense.splitWith ? (expense.amount / (expense.splitWith.length + 1)).toFixed(2) : expense.amount.toFixed(2)
+  const currentUserIdNum = typeof currentUserId === 'string' ? parseInt(currentUserId.replace(/[^0-9]/g, ''), 10) || currentUserId : currentUserId
+  
+  // Calculate user's share from splits if available, otherwise assume equal split
+  let userShare = 0
+  let isParticipant = false
+  
+  if (expense._record?.splits && Array.isArray(expense._record.splits)) {
+    // Use actual split amounts from record
+    const userSplit = expense._record.splits.find(s => String(s.userId) === String(currentUserId))
+    if (userSplit) {
+      userShare = parseFloat(userSplit.amount) || 0
+      isParticipant = true
+    }
+  } else if (expense.splitWith && Array.isArray(expense.splitWith)) {
+    // Fallback to equal split calculation
+    const totalParticipants = expense.splitWith.length + 1 // +1 for payer
+    userShare = expense.amount / totalParticipants
+    isParticipant = youPaid || expense.splitWith.some(id => String(id) === String(currentUserId))
+  } else {
+    // No split info, assume user is not involved unless they paid
+    userShare = youPaid ? expense.amount : 0
+    isParticipant = youPaid
+  }
+  
+  const per = userShare.toFixed(2)
   
   const getName = (id) => {
     if (String(id) === String(currentUserId)) return 'You'
@@ -48,21 +72,37 @@ export default function ExpenseCard({ expense, friends, currentUserId = 'u1', on
           )}
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          {showBalance && (youPaid || (expense.splitWith && expense.splitWith.some(id => String(id) === String(currentUserId)))) ? (
-            <>
-              <div style={{
-                fontWeight: 800,
-                fontSize: showCategoryBadge ? 17 : 15,
-                color: youPaid ? 'var(--positive)' : 'var(--negative)',
-                letterSpacing: showCategoryBadge ? '-0.02em' : '0',
-              }}>
-                {youPaid ? `+LKR ${(expense.amount - parseFloat(per)).toFixed(2)}` : `-LKR ${per}`}
-              </div>
-              <div style={{ fontSize: showCategoryBadge ? 13 : 11, color: 'var(--text3)' }}>
-                {youPaid ? 'lent' : 'owe'}
-              </div>
-            </>
-          ) : (
+          {showBalance && isParticipant ? (() => {
+            // Calculate balance from user's perspective
+            // Positive = you're owed money (money coming to you)
+            // Negative = you owe money (money going out)
+            let balance = 0
+            if (youPaid) {
+              // You paid, so you're owed back: amount you paid - your share
+              balance = expense.amount - parseFloat(per)
+            } else {
+              // You didn't pay, so you owe: your share (negative)
+              balance = -parseFloat(per)
+            }
+            
+            const isPositive = balance >= 0
+            
+            return (
+              <>
+                <div style={{
+                  fontWeight: 800,
+                  fontSize: showCategoryBadge ? 17 : 15,
+                  color: isPositive ? 'var(--positive)' : 'var(--negative)',
+                  letterSpacing: showCategoryBadge ? '-0.02em' : '0',
+                }}>
+                  {isPositive ? '+' : ''}LKR {Math.abs(balance).toFixed(2)}
+                </div>
+                <div style={{ fontSize: showCategoryBadge ? 13 : 11, color: 'var(--text3)' }}>
+                  {isPositive ? 'owed' : 'owe'}
+                </div>
+              </>
+            )
+          })() : (
             <>
               <div style={{
                 fontWeight: 800,

@@ -1,14 +1,19 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { SectionLabel, Avatar } from '../components/UI.jsx'
+import { SectionLabel, Avatar, EmptyState } from '../components/UI.jsx'
 import FloatingActionButton from '../components/FloatingActionButton.jsx'
 import BalanceHeroCard from '../components/BalanceHeroCard.jsx'
 import ExpenseCard from '../components/ExpenseCard.jsx'
 import GroupCard from '../components/GroupCard.jsx'
+import { useRecords } from '../hooks/useRecords.jsx'
 
-export default function HomeScreen({ currentUser, friends, groups, expenses, totalOwed, totalOwe, netBalance, onAddExpense }) {
+export default function HomeScreen({ currentUser, friends, groups, expenses: expensesProp, totalOwed, totalOwe, netBalance, onAddExpense }) {
   const navigate = useNavigate()
-  const recent = [...(expenses || [])].sort((a,b)=>(b.date || '').localeCompare(a.date || '')).slice(0,4)
+  const { expenses: recordsExpenses, loading: recordsLoading } = useRecords()
+  
+  // Use expenses from prop if provided, otherwise from useRecords hook
+  const expenses = expensesProp || recordsExpenses || []
+  const recent = [...expenses].sort((a,b)=>(b.date || '').localeCompare(a.date || '')).slice(0,4)
   const currentUserId = currentUser?.id || 'u1'
   const getName = id => {
     if (String(id) === String(currentUserId)) return 'You'
@@ -150,15 +155,23 @@ export default function HomeScreen({ currentUser, friends, groups, expenses, tot
               color:'var(--accent)', fontSize:13, cursor:'pointer',
               fontFamily:'var(--font-body)', fontWeight:700 }}>See all →</button>
           </SectionLabel>
-          {recent.map(e=>(
-            <ExpenseCard
-              key={e.id}
-              expense={e}
-              friends={friends}
-              currentUserId={currentUserId}
-              showBalance={true}
-            />
-          ))}
+          {recordsLoading ? (
+            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)', fontSize: 13 }}>
+              Loading records...
+            </div>
+          ) : recent.length === 0 ? (
+            <EmptyState emoji="📋" title="No recent expenses" subtitle="Add your first expense to get started"/>
+          ) : (
+            recent.map(e=>(
+              <ExpenseCard
+                key={e.id}
+                expense={e}
+                friends={friends}
+                currentUserId={currentUserId}
+                showBalance={true}
+              />
+            ))
+          )}
         </div>
       </div>
 

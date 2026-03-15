@@ -1,6 +1,6 @@
 import { db } from '../db/index.js';
 import { records, users, groups, recordSplits } from '../db/schema.js';
-import { eq, isNull, and } from 'drizzle-orm';
+import { eq, isNull, and, inArray } from 'drizzle-orm';
 
 export const recordDAO = {
   /**
@@ -64,7 +64,8 @@ export const recordDAO = {
    * @returns {Promise<Array>} Array of records
    */
   async getRecordsByGroupId(groupId) {
-    return await db
+    console.log('[getRecordsByGroupId DAO] Fetching records for groupId:', groupId);
+    const result = await db
       .select({
         id: records.id,
         groupId: records.groupId,
@@ -77,6 +78,16 @@ export const recordDAO = {
       .from(records)
       .innerJoin(users, eq(records.paidBy, users.id))
       .where(eq(records.groupId, groupId));
+    console.log('[getRecordsByGroupId DAO] Found records:', result?.length || 0);
+    if (result?.length > 0) {
+      console.log('[getRecordsByGroupId DAO] Sample record:', {
+        id: result[0].id,
+        groupId: result[0].groupId,
+        paidBy: result[0].paidBy,
+        description: result[0].description,
+      });
+    }
+    return result;
   },
 
   /**
@@ -85,7 +96,21 @@ export const recordDAO = {
    * @returns {Promise<Array>} Array of personal records
    */
   async getPersonalRecordsByUserId(userId) {
-    return await db
+    console.log('[getPersonalRecordsByUserId DAO] Fetching personal records for userId:', userId);
+    
+    // First, let's check all records to see what exists
+    const allRecords = await db.select().from(records).limit(10);
+    console.log('[getPersonalRecordsByUserId DAO] Sample of all records in DB:', {
+      total: allRecords.length,
+      records: allRecords.map(r => ({
+        id: r.id,
+        groupId: r.groupId,
+        paidBy: r.paidBy,
+        description: r.description,
+      })),
+    });
+    
+    const result = await db
       .select({
         id: records.id,
         groupId: records.groupId,
@@ -98,15 +123,87 @@ export const recordDAO = {
       .from(records)
       .innerJoin(users, eq(records.paidBy, users.id))
       .where(and(eq(records.paidBy, userId), isNull(records.groupId)));
+    
+    console.log('[getPersonalRecordsByUserId DAO] Found personal records:', result?.length || 0);
+    if (result?.length > 0) {
+      console.log('[getPersonalRecordsByUserId DAO] Sample personal record:', {
+        id: result[0].id,
+        groupId: result[0].groupId,
+        paidBy: result[0].paidBy,
+        description: result[0].description,
+      });
+    } else {
+      console.log('[getPersonalRecordsByUserId DAO] No personal records found. Query conditions: paidBy =', userId, 'AND groupId IS NULL');
+    }
+    
+    return result;
   },
 
   /**
-   * Get records paid by a user
+   * Get records paid by a user (with payer details)
    * @param {number} userId - User ID
-   * @returns {Promise<Array>} Array of records
+   * @returns {Promise<Array>} Array of records with payer details
    */
   async getRecordsByPayer(userId) {
-    return await db.select().from(records).where(eq(records.paidBy, userId));
+    return await db
+      .select({
+        id: records.id,
+        groupId: records.groupId,
+        paidBy: records.paidBy,
+        description: records.description,
+        amount: records.amount,
+        createdAt: records.createdAt,
+        payer: users,
+      })
+      .from(records)
+      .innerJoin(users, eq(records.paidBy, users.id))
+      .where(eq(records.paidBy, userId));
+  },
+
+  /**
+   * Get records where user is a participant (via splits)
+   * @param {number} userId - User ID
+   * @param {Array<number>} excludeRecordIds - Record IDs to exclude (e.g., already fetched as payer)
+   * @returns {Promise<Array>} Array of records where user is a participant
+   */
+  async getRecordsByParticipant(userId, excludeRecordIds = []) {
+    console.log('[getRecordsByParticipant DAO] Fetching records where userId is participant:', userId);
+    console.log('[getRecordsByParticipant DAO] Excluding record IDs:', excludeRecordIds);
+    
+    // Get record IDs where user is a participant via splits
+    const userSplits = await db
+      .select({ recordId: recordSplits.recordId })
+      .from(recordSplits)
+      .where(eq(recordSplits.userId, userId));
+    
+    const participantRecordIds = userSplits
+      .map(s => s.recordId)
+      .filter(id => !excludeRecordIds.includes(id));
+    
+    console.log('[getRecordsByParticipant DAO] Found', participantRecordIds.length, 'record IDs where user is participant');
+    
+    if (participantRecordIds.length === 0) {
+      return [];
+    }
+    
+    // Get records with payer details using IN clause
+    const allResults = await db
+      .select({
+        id: records.id,
+        groupId: records.groupId,
+        paidBy: records.paidBy,
+        description: records.description,
+        amount: records.amount,
+        createdAt: records.createdAt,
+        payer: users,
+      })
+      .from(records)
+      .innerJoin(users, eq(records.paidBy, users.id))
+      .where(inArray(records.id, participantRecordIds));
+    
+    console.log('[getRecordsByParticipant DAO] Found', allResults.length, 'records where user is participant');
+    
+    return allResults;
   },
 
   /**

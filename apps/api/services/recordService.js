@@ -366,12 +366,56 @@ export async function getRecordWithDetails(recordId, userId) {
  * @returns {Promise<Array>} Array of records
  */
 export async function getRecordsForUser(userId, filters = {}) {
+  console.log('[getRecordsForUser Service] Called with:', { userId, filters });
+
   if (filters.groupId) {
-    return await recordDAO.getRecordsByGroupId(filters.groupId);
+    console.log('[getRecordsForUser Service] Fetching records by groupId:', filters.groupId);
+    const groupRecords = await recordDAO.getRecordsByGroupId(filters.groupId);
+    console.log('[getRecordsForUser Service] Group records found:', groupRecords?.length || 0);
+    
+    // Fetch splits for all group records
+    console.log('[getRecordsForUser Service] Fetching splits for', groupRecords.length, 'group records');
+    const groupRecordsWithSplits = await Promise.all(
+      groupRecords.map(async (record) => {
+        const recordWithSplits = await recordDAO.getRecordWithSplits(record.id);
+        return recordWithSplits || record;
+      })
+    );
+    
+    console.log('[getRecordsForUser Service] Returning', groupRecordsWithSplits.length, 'group records with splits');
+    return groupRecordsWithSplits;
   }
   
-  // Get personal records and group records
-  const personalRecords = await recordDAO.getPersonalRecordsByUserId(userId);
-  // TODO: Get group records where user is a participant
-  return personalRecords;
+  // Get all records where user is involved:
+  // 1. Records where user is the payer (personal or group)
+  // 2. Records where user is a participant via splits (but not the payer)
+  
+  console.log('[getRecordsForUser Service] Fetching records where user is payer');
+  const recordsAsPayer = await recordDAO.getRecordsByPayer(userId);
+  console.log('[getRecordsForUser Service] Records where user is payer:', recordsAsPayer?.length || 0);
+  
+  const payerRecordIds = recordsAsPayer.map(r => r.id);
+  
+  // Get records where user is a participant (via splits) but not the payer
+  console.log('[getRecordsForUser Service] Fetching records where user is participant (via splits)');
+  const recordsAsParticipant = await recordDAO.getRecordsByParticipant(userId, payerRecordIds);
+  console.log('[getRecordsForUser Service] Records where user is participant:', recordsAsParticipant?.length || 0);
+  
+  // Combine all records and remove duplicates
+  const allRecords = [...recordsAsPayer, ...recordsAsParticipant];
+  const uniqueRecords = Array.from(
+    new Map(allRecords.map(r => [r.id, r])).values()
+  );
+  
+  // Fetch splits for all records
+  console.log('[getRecordsForUser Service] Fetching splits for', uniqueRecords.length, 'records');
+  const recordsWithSplits = await Promise.all(
+    uniqueRecords.map(async (record) => {
+      const recordWithSplits = await recordDAO.getRecordWithSplits(record.id);
+      return recordWithSplits || record;
+    })
+  );
+  
+  console.log('[getRecordsForUser Service] Total unique records with splits:', recordsWithSplits.length);
+  return recordsWithSplits;
 }
