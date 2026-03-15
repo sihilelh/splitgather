@@ -8,7 +8,7 @@ export default function BalanceHeroCard({ title, balance, subtitle, breakdown, c
     <div
       className="a2"
       style={{
-        background: `linear-gradient(135deg, ${color}30 0%, ${color}22 50%, ${color}15 100%)`,
+        background: !isPositive && `linear-gradient(135deg, ${color}30 0%, ${color}22 50%, ${color}15 100%)`,
         backdropFilter: 'blur(24px) saturate(1.8)',
         WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
         border: '1.5px solid rgba(255,255,255,0.85)',

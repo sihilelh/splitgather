@@ -44,10 +44,6 @@ export function useGroups() {
   const [groupDetails, setGroupDetails] = useState({}) // Cache for individual group details
 
 
-  console.log({
-    groups,
-  });
-
   // Load groups on mount
   useEffect(() => {
     if (user) {
