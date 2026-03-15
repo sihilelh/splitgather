@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import apiRouter from './routes/routes.js';
 import { db } from './config/database.js';
+import path from 'path';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -20,6 +21,14 @@ app.use(cors({
 app.use(express.json());
 
 app.use('/api', apiRouter);
+
+const distBasePath = path.resolve(process.cwd(), '..', 'web', 'dist')
+
+app.use(express.static(distBasePath));
+
+app.get('{*any}', (_, res) => {
+  res.sendFile(path.join(distBasePath, 'index.html'));
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
