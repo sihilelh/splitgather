@@ -103,8 +103,8 @@ export default function TopNav({ currentPath }) {
             style={{
               padding:'8px 12px',
               borderRadius:999,
-              background:'rgba(255,255,255,0.85)',
-              border:'1px solid var(--glass-border)',
+              background: theme === 'light' ? 'rgba(255,255,255,0.85)' : 'rgba(28,28,36,0.80)',
+              border:'1.5px solid ' + (theme === 'light' ? 'rgba(255,255,255,0.80)' : 'rgba(31,216,136,0.25)'),
               fontSize:12,
               fontWeight:600,
               color:'var(--text)',
